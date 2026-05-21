@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://yourusername.github.io/sitemap.xml
+Sitemap: https://Gurumurthy2001.github.io/sitemap.xml
