@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VLSI Study Material — A T Gurumurthy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@300;400;500&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#020408;--bg2:#030610;--bg3:#040812;
+  --surface:rgba(0,200,255,0.03);--surface2:rgba(0,200,255,0.06);
+  --border:rgba(0,200,255,0.08);--border2:rgba(0,200,255,0.2);
+  --text:#e8f4f8;--muted:rgba(180,220,235,0.45);
+  --cyan:#00c8ff;--cyan2:#00ffe0;--blue:#0066ff;--purple:#7b2fff;--gold:#f0a500;
+  --red:#ff4466;--green:#00e676;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-weight:300;overflow-x:hidden;line-height:1.7;cursor:none}
+#cur{position:fixed;width:6px;height:6px;background:var(--cyan);border-radius:50%;pointer-events:none;z-index:9999;mix-blend-mode:screen;box-shadow:0 0 10px var(--cyan)}
+#cur-ring{position:fixed;width:28px;height:28px;border:1px solid rgba(0,200,255,0.4);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:all 0.3s cubic-bezier(0.25,0.46,0.45,0.94)}
+::-webkit-scrollbar{width:2px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--cyan)}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:1.2rem 3rem;display:flex;align-items:center;justify-content:space-between;background:rgba(2,4,8,0.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:0.12em;color:var(--text);text-decoration:none}
+.nav-logo span{color:var(--cyan)}
+.nav-back{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;padding:0.5rem 1.2rem;border:1px solid var(--border2);border-radius:3px;color:var(--cyan);text-decoration:none;transition:all 0.3s}
+.nav-back:hover{background:var(--cyan);color:var(--bg)}
+
+/* PAGE HEADER */
+.page-header{padding:8rem 3rem 3rem;max-width:1200px;margin:0 auto}
+.ph-tag{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--cyan);margin-bottom:1rem;display:flex;align-items:center;gap:0.6rem}
+.ph-tag::before{content:'//';opacity:0.5}
+.ph-title{font-family:'Rajdhani',sans-serif;font-size:clamp(2.5rem,5vw,4rem);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;line-height:1.0;margin-bottom:1rem}
+.ph-title span{color:var(--cyan)}
+.ph-sub{color:var(--muted);font-size:0.9rem;max-width:600px;line-height:1.8}
+.ph-stats{display:flex;gap:2rem;margin-top:2rem;padding-top:2rem;border-top:1px solid var(--border);flex-wrap:wrap}
+.ph-stat-val{font-family:'Rajdhani',sans-serif;font-size:1.8rem;font-weight:700;color:var(--cyan);display:block}
+.ph-stat-lbl{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted)}
+
+/* MAIN LAYOUT */
+.main-wrap{max-width:1200px;margin:0 auto;padding:0 3rem 6rem;display:grid;grid-template-columns:260px 1fr;gap:2rem;align-items:start}
+
+/* SIDEBAR */
+.sidebar{position:sticky;top:80px;display:flex;flex-direction:column;gap:0.5rem}
+.sidebar-title{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);padding:0 0.5rem;margin-bottom:0.5rem}
+.cat-btn{padding:0.7rem 1rem;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;letter-spacing:0.08em;cursor:none;transition:all 0.3s;display:flex;align-items:center;gap:0.6rem;text-align:left}
+.cat-btn:hover{border-color:var(--border2);color:var(--text)}
+.cat-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(0,200,255,0.06)}
+.cat-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.cat-count{margin-left:auto;font-size:0.58rem;background:rgba(0,200,255,0.1);border:1px solid var(--border);border-radius:10px;padding:0.1rem 0.5rem;color:var(--muted)}
+.cat-btn.active .cat-count{background:rgba(0,200,255,0.15);border-color:rgba(0,200,255,0.3);color:var(--cyan)}
+
+.sidebar-divider{height:1px;background:var(--border);margin:0.5rem 0}
+.upload-area{border:1px dashed var(--border2);border-radius:6px;padding:1.5rem;text-align:center;cursor:none;transition:all 0.3s;background:var(--surface);margin-top:0.5rem}
+.upload-area:hover,.upload-area.drag{border-color:var(--cyan);background:rgba(0,200,255,0.05)}
+.upload-icon{font-size:1.6rem;margin-bottom:0.5rem;display:block;color:var(--cyan)}
+.upload-text{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;letter-spacing:0.1em;color:var(--muted);margin-bottom:0.8rem;line-height:1.6}
+.upload-text span{color:var(--cyan)}
+.upload-btn-label{display:inline-block;padding:0.5rem 1.2rem;border:1px solid var(--cyan);border-radius:3px;color:var(--cyan);font-family:'IBM Plex Mono',monospace;font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;transition:all 0.3s}
+.upload-btn-label:hover{background:var(--cyan);color:var(--bg)}
+#file-input{display:none}
+.upload-types{font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:0.6rem;opacity:0.6}
+
+/* SEARCH BAR */
+.search-wrap{display:flex;gap:0.8rem;margin-bottom:1.5rem;align-items:center}
+.search-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0.7rem 1rem;color:var(--text);font-family:'Outfit',sans-serif;font-size:0.85rem;outline:none;transition:all 0.3s}
+.search-input:focus{border-color:var(--cyan);background:rgba(0,200,255,0.04)}
+.search-input::placeholder{color:rgba(180,220,235,0.2)}
+.sort-select{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0.7rem 1rem;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:0.65rem;outline:none;transition:all 0.3s;cursor:none}
+.sort-select:focus{border-color:var(--cyan)}
+.view-btns{display:flex;gap:0.3rem}
+.view-btn{width:34px;height:34px;border:1px solid var(--border);border-radius:4px;background:var(--surface);color:var(--muted);cursor:none;transition:all 0.3s;display:flex;align-items:center;justify-content:center;font-size:0.85rem}
+.view-btn.active,.view-btn:hover{border-color:var(--border2);color:var(--cyan);background:rgba(0,200,255,0.06)}
+
+/* GRID VIEW */
+.material-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1.2rem}
+.material-grid.list-view{grid-template-columns:1fr}
+
+/* MATERIAL CARD */
+.mat-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;transition:all 0.4s;cursor:none;position:relative}
+.mat-card:hover{border-color:var(--border2);transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,0.5)}
+.mat-thumb{height:130px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.mat-thumb-pdf{background:linear-gradient(135deg,#1a0505,#300a0a)}
+.mat-thumb-img{background:linear-gradient(135deg,#011520,#022a3a)}
+.mat-thumb-video{background:linear-gradient(135deg,#050020,#0d0040)}
+.mat-thumb-notes{background:linear-gradient(135deg,#001510,#002a1a)}
+.thumb-icon{font-size:2.8rem;opacity:0.7}
+.thumb-type-badge{position:absolute;top:8px;left:8px;font-family:'IBM Plex Mono',monospace;font-size:0.55rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.2rem 0.6rem;border-radius:2px;border:1px solid}
+.badge-pdf{color:#ff6b6b;border-color:rgba(255,107,107,0.3);background:rgba(255,107,107,0.1)}
+.badge-img{color:var(--cyan);border-color:rgba(0,200,255,0.3);background:rgba(0,200,255,0.08)}
+.badge-video{color:var(--purple);border-color:rgba(123,47,255,0.3);background:rgba(123,47,255,0.1)}
+.badge-notes{color:var(--cyan2);border-color:rgba(0,255,224,0.3);background:rgba(0,255,224,0.08)}
+.mat-card-actions{position:absolute;top:8px;right:8px;display:flex;gap:0.3rem;opacity:0;transition:opacity 0.3s}
+.mat-card:hover .mat-card-actions{opacity:1}
+.act-btn{width:26px;height:26px;border-radius:3px;border:1px solid var(--border2);background:rgba(2,4,8,0.9);color:var(--muted);cursor:none;transition:all 0.2s;display:flex;align-items:center;justify-content:center;font-size:0.7rem}
+.act-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.act-btn.del:hover{border-color:var(--red);color:var(--red)}
+.mat-body{padding:1rem}
+.mat-title{font-family:'Rajdhani',sans-serif;font-size:0.95rem;font-weight:600;letter-spacing:0.04em;color:var(--text);margin-bottom:0.3rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mat-desc{font-size:0.72rem;color:var(--muted);line-height:1.5;margin-bottom:0.7rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mat-meta{display:flex;align-items:center;justify-content:space-between}
+.mat-category{font-family:'IBM Plex Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--cyan);background:rgba(0,200,255,0.08);border:1px solid var(--border);padding:0.15rem 0.5rem;border-radius:2px}
+.mat-date{font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:var(--muted)}
+.mat-size{font-family:'IBM Plex Mono',monospace;font-size:0.58rem;color:var(--muted);margin-top:0.3rem}
+#owner-upload{
+    display:none;
+}
+/* LIST VIEW card */
+.material-grid.list-view .mat-card{display:grid;grid-template-columns:60px 1fr auto;align-items:center;gap:1rem;padding:0.8rem 1rem}
+.material-grid.list-view .mat-thumb{height:50px;width:50px;border-radius:4px;flex-shrink:0}
+.material-grid.list-view .thumb-icon{font-size:1.4rem}
+.material-grid.list-view .thumb-type-badge{display:none}
+.material-grid.list-view .mat-body{padding:0}
+.material-grid.list-view .mat-desc{display:none}
+.material-grid.list-view .mat-card-actions{position:static;opacity:1;flex-direction:row}
+.material-grid.list-view .mat-card:hover{transform:none}
+.material-grid.list-view .mat-size{display:none}
+
+/* MODAL OVERLAY */
+#modal-overlay{position:fixed;inset:0;background:rgba(2,4,8,0.92);backdrop-filter:blur(10px);z-index:500;display:none;align-items:center;justify-content:center;padding:2rem}
+#modal-overlay.show{display:flex}
+.modal-box{background:#030610;border:1px solid var(--border2);border-radius:8px;width:100%;max-width:700px;max-height:85vh;overflow-y:auto;position:relative}
+.modal-header{padding:1.5rem 1.5rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#030610;z-index:2}
+.modal-title{font-family:'Rajdhani',sans-serif;font-size:1.2rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text)}
+.modal-close{width:32px;height:32px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--muted);cursor:none;transition:all 0.2s;display:flex;align-items:center;justify-content:center;font-size:1rem}
+.modal-close:hover{border-color:var(--red);color:var(--red)}
+.modal-body{padding:1.5rem}
+.modal-preview{width:100%;max-height:350px;object-fit:contain;border-radius:4px;margin-bottom:1.5rem;background:var(--surface)}
+.modal-video{width:100%;border-radius:4px;margin-bottom:1.5rem}
+.modal-pdf-frame{width:100%;height:350px;border:1px solid var(--border);border-radius:4px;margin-bottom:1.5rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.f-group{display:flex;flex-direction:column;gap:0.4rem}
+.f-label{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted)}
+.f-input,.f-textarea,.f-select{background:rgba(0,200,255,0.02);border:1px solid var(--border);border-radius:4px;padding:0.75rem 0.9rem;color:var(--text);font-family:'Outfit',sans-serif;font-size:0.85rem;outline:none;transition:all 0.3s;width:100%}
+.f-input:focus,.f-textarea:focus,.f-select:focus{border-color:var(--cyan);background:rgba(0,200,255,0.04)}
+.f-textarea{height:80px;resize:none;line-height:1.6}
+.f-input::placeholder,.f-textarea::placeholder{color:rgba(180,220,235,0.2)}
+.f-select option{background:#030610;color:var(--text)}
+.modal-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:0.8rem;justify-content:flex-end}
+.btn-save{padding:0.7rem 2rem;background:var(--cyan);border:none;border-radius:3px;color:var(--bg);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;cursor:none;transition:all 0.3s}
+.btn-save:hover{opacity:0.85;transform:translateY(-1px)}
+.btn-cancel{padding:0.7rem 1.5rem;background:transparent;border:1px solid var(--border);border-radius:3px;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;cursor:none;transition:all 0.3s}
+.btn-cancel:hover{border-color:var(--border2);color:var(--text)}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:5rem 2rem;border:1px dashed var(--border);border-radius:8px}
+.empty-icon{font-size:3rem;margin-bottom:1rem;opacity:0.3}
+.empty-title{font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem}
+.empty-sub{font-size:0.8rem;color:var(--muted);opacity:0.6}
+
+/* TOAST */
+#toast{position:fixed;bottom:2rem;right:2rem;z-index:999;display:flex;flex-direction:column;gap:0.5rem}
+.toast-item{background:#030610;border:1px solid var(--border2);border-radius:4px;padding:0.8rem 1.2rem;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;color:var(--cyan2);display:flex;align-items:center;gap:0.6rem;transform:translateX(120%);transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);max-width:280px}
+.toast-item.show{transform:translateX(0)}
+.toast-dot{width:5px;height:5px;background:var(--cyan2);border-radius:50%;box-shadow:0 0 6px var(--cyan2);flex-shrink:0}
+
+/* PROGRESS BAR */
+.upload-progress{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1rem;margin-top:0.8rem;display:none}
+.upload-progress.show{display:block}
+.prog-file{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prog-track{height:2px;background:rgba(0,200,255,0.1);border-radius:2px;overflow:hidden}
+.prog-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));border-radius:2px;width:0%;transition:width 0.05s}
+.prog-pct{font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--cyan);margin-top:0.3rem}
+
+/* Scanline */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,200,255,0.008) 3px,rgba(0,200,255,0.008) 4px);pointer-events:none;z-index:1000;animation:scanMove 20s linear infinite}
+@keyframes scanMove{0%{background-position:0 0}100%{background-position:0 100px}}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.mat-card{animation:fadeUp 0.4s ease both}
+
+@media(max-width:900px){
+  .main-wrap{grid-template-columns:1fr;padding:0 1.5rem 4rem}
+  .sidebar{position:static}
+  .cat-btn{padding:0.5rem 0.8rem;font-size:0.62rem}
+  nav{padding:1rem 1.5rem}
+  .page-header{padding:6rem 1.5rem 2rem}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur-ring"></div>
+<div id="toast"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">A T <span>Gurumurthy</span> · VLSI</a>
+  <a href="index.html" class="nav-back">← Back to Portfolio</a>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="ph-tag"></div>
+  <h1 class="ph-title">VLSI Study <span>Material</span></h1>
+  <p class="ph-sub">Curated PDFs, layout screenshots, video tutorials, and technical notes on analog layout, physical verification, DRC/LVS, and EDA tools. Upload and organize your own resources.</p>
+  <div class="ph-stats">
+    <div><span class="ph-stat-val" id="total-count">0</span><span class="ph-stat-lbl">Total Resources</span></div>
+    <div><span class="ph-stat-val" id="pdf-count">0</span><span class="ph-stat-lbl">PDFs</span></div>
+    <div><span class="ph-stat-val" id="img-count">0</span><span class="ph-stat-lbl">Images</span></div>
+    <div><span class="ph-stat-val" id="vid-count">0</span><span class="ph-stat-lbl">Videos</span></div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-wrap">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Categories</div>
+    <button class="cat-btn active" data-cat="all" onclick="filterCat('all',this)">
+      <span class="cat-dot" style="background:var(--cyan)"></span>All Materials
+      <span class="cat-count" id="cnt-all">0</span>
+    </button>
+    <button class="cat-btn" data-cat="drc-lvs" onclick="filterCat('drc-lvs',this)">
+      <span class="cat-dot" style="background:#ff6b6b"></span>DRC / LVS
+      <span class="cat-count" id="cnt-drc-lvs">0</span>
+    </button>
+    <button class="cat-btn" data-cat="analog-layout" onclick="filterCat('analog-layout',this)">
+      <span class="cat-dot" style="background:var(--cyan)"></span>Analog Layout
+      <span class="cat-count" id="cnt-analog-layout">0</span>
+    </button>
+    <button class="cat-btn" data-cat="pv" onclick="filterCat('pv',this)">
+      <span class="cat-dot" style="background:var(--purple)"></span>Physical Verif.
+      <span class="cat-count" id="cnt-pv">0</span>
+    </button>
+    <button class="cat-btn" data-cat="tools" onclick="filterCat('tools',this)">
+      <span class="cat-dot" style="background:var(--gold)"></span>EDA Tools
+      <span class="cat-count" id="cnt-tools">0</span>
+    </button>
+    <button class="cat-btn" data-cat="cmos" onclick="filterCat('cmos',this)">
+      <span class="cat-dot" style="background:var(--cyan2)"></span>CMOS Technology
+      <span class="cat-count" id="cnt-cmos">0</span>
+    </button>
+    <button class="cat-btn" data-cat="scripting" onclick="filterCat('scripting',this)">
+      <span class="cat-dot" style="background:#00e676"></span>Scripting / SKILL
+      <span class="cat-count" id="cnt-scripting">0</span>
+    </button>
+    <button class="cat-btn" data-cat="other" onclick="filterCat('other',this)">
+      <span class="cat-dot" style="background:var(--muted)"></span>Other
+      <span class="cat-count" id="cnt-other">0</span>
+    </button>
+
+    <div class="sidebar-divider"></div>
+<div id="owner-upload">
+    <!-- UPLOAD AREA -->
+    <div class="upload-area" id="drop-zone">
+      <span class="upload-icon">⬆</span>
+      <div class="upload-text">Drop files here or<br><span>browse to upload</span></div>
+      <label class="upload-btn-label" for="file-input">Choose Files</label>
+      <input type="file" id="file-input" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.mp4,.webm,.mov"/>
+      <div class="upload-types">PDF · PNG · JPG · MP4 · WEBM</div>
+    </div>
+    </div>
+    <div class="upload-progress" id="upload-progress">
+      <div class="prog-file" id="prog-filename">Uploading...</div>
+      <div class="prog-track"><div class="prog-bar" id="prog-bar"></div></div>
+      <div class="prog-pct" id="prog-pct">0%</div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+    <button class="cat-btn" onclick="addSampleData()" style="border-color:rgba(0,200,255,0.3);color:var(--cyan2)">
+      <span style="font-size:0.8rem">+</span> Load Sample Materials
+    </button>
+  </aside>
+
+  <!-- CONTENT -->
+  <div>
+    <!-- Search + Controls -->
+    <div class="search-wrap">
+      <input class="search-input" type="text" placeholder="Search materials by title, category, keyword..." id="search-input" oninput="renderMaterials()"/>
+      <select class="sort-select" id="sort-select" onchange="renderMaterials()">
+        <option value="newest">Newest first</option>
+        <option value="oldest">Oldest first</option>
+        <option value="name">Name A–Z</option>
+        <option value="type">Type</option>
+      </select>
+      <div class="view-btns">
+        <button class="view-btn active" id="grid-btn" onclick="setView('grid')" title="Grid view">⊞</button>
+        <button class="view-btn" id="list-btn" onclick="setView('list')" title="List view">☰</button>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="material-grid" id="material-grid"></div>
+  </div>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+<div id="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Add Material</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-preview-area"></div>
+      <div class="form-grid">
+        <div class="f-group" style="grid-column:1/-1">
+          <label class="f-label">Title</label>
+          <input class="f-input" id="m-title" type="text" placeholder="e.g. Calibre DRC Rules Reference"/>
+        </div>
+        <div class="f-group">
+          <label class="f-label">Category</label>
+          <select class="f-select" id="m-category">
+            <option value="drc-lvs">DRC / LVS</option>
+            <option value="analog-layout">Analog Layout</option>
+            <option value="pv">Physical Verification</option>
+            <option value="tools">EDA Tools</option>
+            <option value="cmos">CMOS Technology</option>
+            <option value="scripting">Scripting / SKILL</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="f-group">
+          <label class="f-label">Type</label>
+          <select class="f-select" id="m-type">
+            <option value="pdf">PDF Document</option>
+            <option value="img">Image / Screenshot</option>
+            <option value="video">Video Tutorial</option>
+            <option value="notes">Notes / Text</option>
+          </select>
+        </div>
+        <div class="f-group" style="grid-column:1/-1">
+          <label class="f-label">Description</label>
+          <textarea class="f-textarea" id="m-desc" placeholder="Brief description of what this material covers..."></textarea>
+        </div>
+        <div class="f-group">
+          <label class="f-label">Tags (comma separated)</label>
+          <input class="f-input" id="m-tags" type="text" placeholder="DRC, Calibre, SVRF..."/>
+        </div>
+        <div class="f-group">
+          <label class="f-label">External Link (optional)</label>
+          <input class="f-input" id="m-link" type="url" placeholder="https://..."/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveMaterial()">Save Material</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW MODAL -->
+<div id="view-overlay" style="position:fixed;inset:0;background:rgba(2,4,8,0.95);backdrop-filter:blur(12px);z-index:600;display:none;align-items:center;justify-content:center;padding:2rem">
+  <div style="background:#030610;border:1px solid var(--border2);border-radius:8px;width:100%;max-width:800px;max-height:90vh;overflow-y:auto;position:relative">
+    <div style="padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#030610;z-index:2">
+      <div style="font-family:'Rajdhani',sans-serif;font-size:1.1rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase" id="view-title">Material</div>
+      <button class="modal-close" onclick="closeView()">✕</button>
+    </div>
+    <div style="padding:1.5rem" id="view-body"></div>
+  </div>
+</div>
+
+<script>
+// State
+let materials = JSON.parse(localStorage.getItem('vlsi_materials') || '[]');
+let currentCat = 'all';
+let currentView = 'grid';
+let editingId = null;
+let pendingFile = null;
+
+// Cursor
+const cur=document.getElementById('cur'),ring=document.getElementById('cur-ring');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX-3+'px';cur.style.top=e.clientY-3+'px';ring.style.left=e.clientX+'px';ring.style.top=e.clientY+'px';});
+document.querySelectorAll('button,input,select,textarea,label,.cat-btn,.mat-card').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.transform='scale(3)';ring.style.transform='translate(-50%,-50%) scale(1.5)';ring.style.borderColor='rgba(0,200,255,0.8)';});
+  el.addEventListener('mouseleave',()=>{cur.style.transform='scale(1)';ring.style.transform='translate(-50%,-50%) scale(1)';ring.style.borderColor='rgba(0,200,255,0.4)';});
+});
+
+
+const params =
+    new URLSearchParams(window.location.search);
+
+if(params.get("gm") === "true"){
+
+    document
+        .getElementById("owner-upload")
+        .style
+        .display = "block";
+}
+
+// Save to localStorage
+function save() { localStorage.setItem('vlsi_materials', JSON.stringify(materials)); }
+
+// Toast
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  const d = document.createElement('div');
+  d.className = 'toast-item';
+  d.innerHTML = `<span class="toast-dot"></span>${msg}`;
+  t.appendChild(d);
+  setTimeout(() => d.classList.add('show'), 50);
+  setTimeout(() => { d.classList.remove('show'); setTimeout(() => d.remove(), 400); }, 3000);
+}
+
+// Type config
+const typeConfig = {
+  pdf: { icon: '📄', label: 'PDF', badgeClass: 'badge-pdf', thumbClass: 'mat-thumb-pdf' },
+  img: { icon: '🖼', label: 'IMG', badgeClass: 'badge-img', thumbClass: 'mat-thumb-img' },
+  video: { icon: '🎬', label: 'VIDEO', badgeClass: 'badge-video', thumbClass: 'mat-thumb-video' },
+  notes: { icon: '📝', label: 'NOTES', badgeClass: 'badge-notes', thumbClass: 'mat-thumb-notes' }
+};
+
+const catLabels = {
+  'drc-lvs': 'DRC / LVS', 'analog-layout': 'Analog Layout', 'pv': 'Physical Verif.',
+  'tools': 'EDA Tools', 'cmos': 'CMOS Tech', 'scripting': 'Scripting', 'other': 'Other'
+};
+
+// Render
+function renderMaterials() {
+  const grid = document.getElementById('material-grid');
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const sort = document.getElementById('sort-select').value;
+
+  let filtered = materials.filter(m => {
+    const matchCat = currentCat === 'all' || m.category === currentCat;
+    const matchQ = !q || m.title.toLowerCase().includes(q) || (m.desc || '').toLowerCase().includes(q) || (m.tags || '').toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+
+  if (sort === 'newest') filtered.sort((a, b) => b.date - a.date);
+  else if (sort === 'oldest') filtered.sort((a, b) => a.date - b.date);
+  else if (sort === 'name') filtered.sort((a, b) => a.title.localeCompare(b.title));
+  else if (sort === 'type') filtered.sort((a, b) => a.type.localeCompare(b.type));
+
+  // Update counts
+  updateCounts();
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📦</div><div class="empty-title">No materials found</div><div class="empty-sub">${q ? 'Try a different search term' : 'Upload your first file or load sample materials'}</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map((m, i) => {
+    const tc = typeConfig[m.type] || typeConfig.notes;
+    const dateStr = new Date(m.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const thumbContent = m.type === 'img' && m.dataUrl
+      ? `<img src="${m.dataUrl}" style="width:100%;height:100%;object-fit:cover" alt="${m.title}"/>`
+      : `<span class="thumb-icon">${tc.icon}</span>`;
+    return `
+    <div class="mat-card" style="animation-delay:${i * 0.05}s">
+      <div class="mat-thumb ${tc.thumbClass}">
+        ${thumbContent}
+        <span class="thumb-type-badge ${tc.badgeClass}">${tc.label}</span>
+        <div class="mat-card-actions">
+          <button class="act-btn" onclick="viewMaterial('${m.id}')" title="View">👁</button>
+          <button class="act-btn" onclick="editMaterial('${m.id}')" title="Edit">✏</button>
+          ${m.link ? `<button class="act-btn" onclick="openLink('${m.link}')" title="Open link">↗</button>` : ''}
+          <button class="act-btn del" onclick="deleteMaterial('${m.id}')" title="Delete">✕</button>
+        </div>
+      </div>
+      <div class="mat-body">
+        <div class="mat-title" title="${m.title}">${m.title}</div>
+        <div class="mat-desc">${m.desc || 'No description provided.'}</div>
+        <div class="mat-meta">
+          <span class="mat-category">${catLabels[m.category] || m.category}</span>
+          <span class="mat-date">${dateStr}</span>
+        </div>
+        ${m.size ? `<div class="mat-size">${m.size}</div>` : ''}
+        ${m.tags ? `<div style="margin-top:0.5rem;display:flex;flex-wrap:wrap;gap:0.3rem">${m.tags.split(',').map(t=>t.trim()).filter(Boolean).map(t=>`<span style="font-family:'IBM Plex Mono',monospace;font-size:0.55rem;padding:0.1rem 0.5rem;border:1px solid var(--border);border-radius:2px;color:var(--muted)">${t}</span>`).join('')}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateCounts() {
+  const cats = ['all','drc-lvs','analog-layout','pv','tools','cmos','scripting','other'];
+  cats.forEach(c => {
+    const el = document.getElementById(`cnt-${c}`);
+    if (el) el.textContent = c === 'all' ? materials.length : materials.filter(m => m.category === c).length;
+  });
+  document.getElementById('total-count').textContent = materials.length;
+  document.getElementById('pdf-count').textContent = materials.filter(m => m.type === 'pdf').length;
+  document.getElementById('img-count').textContent = materials.filter(m => m.type === 'img').length;
+  document.getElementById('vid-count').textContent = materials.filter(m => m.type === 'video').length;
+}
+
+function filterCat(cat, btn) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMaterials();
+}
+
+function setView(v) {
+  currentView = v;
+  const grid = document.getElementById('material-grid');
+  document.getElementById('grid-btn').classList.toggle('active', v === 'grid');
+  document.getElementById('list-btn').classList.toggle('active', v === 'list');
+  grid.classList.toggle('list-view', v === 'list');
+}
+
+// File upload
+document.getElementById('file-input').addEventListener('change', e => handleFiles(e.target.files));
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
+
+function handleFiles(files) {
+  Array.from(files).forEach(file => processFile(file));
+}
+
+function processFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const typeMap = { pdf: 'pdf', png: 'img', jpg: 'img', jpeg: 'img', gif: 'img', webp: 'img', mp4: 'video', webm: 'video', mov: 'video' };
+  const type = typeMap[ext] || 'notes';
+  const size = file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' : (file.size / 1024).toFixed(0) + ' KB';
+
+  // Simulate upload progress
+  const prog = document.getElementById('upload-progress');
+  const bar = document.getElementById('prog-bar');
+  const pct = document.getElementById('prog-pct');
+  const fname = document.getElementById('prog-filename');
+  prog.classList.add('show');
+  fname.textContent = file.name;
+  let p = 0;
+  const iv = setInterval(() => {
+    p += Math.random() * 20;
+    if (p >= 100) { p = 100; clearInterval(iv); setTimeout(() => prog.classList.remove('show'), 800); }
+    bar.style.width = p + '%';
+    pct.textContent = Math.floor(p) + '%';
+  }, 80);
+
+  // Read file for preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    pendingFile = { dataUrl: e.target.result, type, name: file.name.replace(/\.[^.]+$/, ''), size };
+    // Open modal with pre-filled data
+    openModal();
+    document.getElementById('m-title').value = file.name.replace(/\.[^.]+$/, '');
+    document.getElementById('m-type').value = type;
+    showFilePreview(e.target.result, type);
+  };
+  if (type === 'img') reader.readAsDataURL(file);
+  else reader.readAsDataURL(file);
+}
+
+function showFilePreview(dataUrl, type) {
+  const area = document.getElementById('modal-preview-area');
+  if (type === 'img') area.innerHTML = `<img class="modal-preview" src="${dataUrl}" alt="Preview"/>`;
+  else if (type === 'video') area.innerHTML = `<video class="modal-video" src="${dataUrl}" controls style="max-height:250px"></video>`;
+  else if (type === 'pdf') area.innerHTML = `<div style="font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--cyan);padding:1rem;border:1px solid var(--border);border-radius:4px;margin-bottom:1rem;background:var(--surface)">📄 PDF ready to save · Preview available after upload</div>`;
+  else area.innerHTML = '';
+}
+
+// Modal
+function openModal(id = null) {
+  editingId = id;
+  document.getElementById('modal-title').textContent = id ? 'Edit Material' : 'Add Material';
+  if (id) {
+    const m = materials.find(x => x.id === id);
+    if (m) {
+      document.getElementById('m-title').value = m.title;
+      document.getElementById('m-category').value = m.category;
+      document.getElementById('m-type').value = m.type;
+      document.getElementById('m-desc').value = m.desc || '';
+      document.getElementById('m-tags').value = m.tags || '';
+      document.getElementById('m-link').value = m.link || '';
+      if (m.dataUrl) showFilePreview(m.dataUrl, m.type);
+      else document.getElementById('modal-preview-area').innerHTML = '';
+    }
+  } else {
+    if (!pendingFile) {
+      document.getElementById('m-title').value = '';
+      document.getElementById('m-category').value = 'drc-lvs';
+      document.getElementById('m-type').value = 'pdf';
+      document.getElementById('m-desc').value = '';
+      document.getElementById('m-tags').value = '';
+      document.getElementById('m-link').value = '';
+      document.getElementById('modal-preview-area').innerHTML = '';
+    }
+  }
+  document.getElementById('modal-overlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+  pendingFile = null;
+  editingId = null;
+}
+
+function saveMaterial() {
+  const title = document.getElementById('m-title').value.trim();
+  if (!title) { showToast('Please enter a title'); return; }
+  const m = {
+    id: editingId || Date.now().toString(),
+    title,
+    category: document.getElementById('m-category').value,
+    type: document.getElementById('m-type').value,
+    desc: document.getElementById('m-desc').value.trim(),
+    tags: document.getElementById('m-tags').value.trim(),
+    link: document.getElementById('m-link').value.trim(),
+    date: editingId ? (materials.find(x => x.id === editingId)?.date || Date.now()) : Date.now(),
+    dataUrl: pendingFile?.dataUrl || (editingId ? materials.find(x => x.id === editingId)?.dataUrl : null),
+    size: pendingFile?.size || (editingId ? materials.find(x => x.id === editingId)?.size : null),
+  };
+  if (editingId) { const idx = materials.findIndex(x => x.id === editingId); if (idx > -1) materials[idx] = m; }
+  else materials.unshift(m);
+  save(); renderMaterials(); closeModal();
+  showToast(editingId ? 'Material updated' : 'Material saved successfully');
+}
+
+function editMaterial(id) { openModal(id); }
+
+function deleteMaterial(id) {
+  if (!confirm('Delete this material?')) return;
+  materials = materials.filter(m => m.id !== id);
+  save(); renderMaterials();
+  showToast('Material deleted');
+}
+
+function viewMaterial(id) {
+  const m = materials.find(x => x.id === id);
+  if (!m) return;
+  const tc = typeConfig[m.type] || typeConfig.notes;
+  const dateStr = new Date(m.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  let previewHtml = '';
+  if (m.type === 'img' && m.dataUrl) previewHtml = `<img src="${m.dataUrl}" style="width:100%;max-height:400px;object-fit:contain;border-radius:4px;border:1px solid var(--border);margin-bottom:1.5rem" alt="${m.title}"/>`;
+  else if (m.type === 'video' && m.dataUrl) previewHtml = `<video src="${m.dataUrl}" controls style="width:100%;border-radius:4px;border:1px solid var(--border);margin-bottom:1.5rem"></video>`;
+  else previewHtml = `<div style="height:120px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:4px;margin-bottom:1.5rem;background:var(--surface);font-size:3rem">${tc.icon}</div>`;
+
+  document.getElementById('view-title').textContent = m.title;
+  document.getElementById('view-body').innerHTML = `
+    ${previewHtml}
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:1.2rem">
+      <span class="thumb-type-badge ${tc.badgeClass}" style="position:static">${tc.label}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;padding:0.2rem 0.7rem;border:1px solid var(--border);border-radius:2px;color:var(--muted)">${catLabels[m.category]}</span>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--muted);display:flex;align-items:center">${dateStr}</span>
+      ${m.size ? `<span style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;color:var(--muted)">${m.size}</span>` : ''}
+    </div>
+    ${m.desc ? `<p style="font-size:0.88rem;color:var(--muted);line-height:1.8;margin-bottom:1.2rem">${m.desc}</p>` : ''}
+    ${m.tags ? `<div style="margin-bottom:1.2rem"><div style="font-family:'IBM Plex Mono',monospace;font-size:0.6rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:0.5rem">Tags</div><div style="display:flex;flex-wrap:wrap;gap:0.4rem">${m.tags.split(',').map(t=>`<span style="font-family:'IBM Plex Mono',monospace;font-size:0.62rem;padding:0.2rem 0.7rem;border:1px solid var(--border);border-radius:2px;color:var(--cyan)">${t.trim()}</span>`).join('')}</div></div>` : ''}
+    ${m.link ? `<a href="${m.link}" target="_blank" style="display:inline-flex;align-items:center;gap:0.5rem;font-family:'IBM Plex Mono',monospace;font-size:0.68rem;letter-spacing:0.1em;color:var(--cyan);text-decoration:none;padding:0.7rem 1.5rem;border:1px solid rgba(0,200,255,0.3);border-radius:3px;transition:all 0.3s">↗ Open External Link</a>` : ''}
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);display:flex;gap:0.7rem">
+      <button class="btn-cancel" onclick="closeView();editMaterial('${m.id}')">Edit</button>
+      <button class="btn-cancel" onclick="deleteMaterial('${m.id}');closeView()" style="color:var(--red);border-color:rgba(255,68,102,0.3)">Delete</button>
+    </div>`;
+  document.getElementById('view-overlay').style.display = 'flex';
+}
+
+function closeView() { document.getElementById('view-overlay').style.display = 'none'; }
+
+// Add link / manual add button
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeView(); } });
+
+// Sample data
+function addSampleData() {
+  const samples = [
+    { id: 's1', title: 'Calibre DRC SVRF Rules Reference', category: 'drc-lvs', type: 'pdf', desc: 'Complete reference guide for writing and interpreting Calibre SVRF design rule check decks. Covers spacing, width, enclosure, antenna, and density rules.', tags: 'DRC, Calibre, SVRF, Rules', link: 'https://docs.google.com', date: Date.now() - 86400000 * 2, size: '3.4 MB' },
+    { id: 's2', title: 'Bandgap Reference Layout — Common Centroid', category: 'analog-layout', type: 'img', desc: 'Screenshot of common-centroid matching technique applied to PTAT/CTAT current mirror pair in 28nm BGR layout. Shows guard ring placement.', tags: 'BGR, Matching, Common-centroid, 28nm', date: Date.now() - 86400000 * 5, size: '1.2 MB' },
+    { id: 's3', title: 'LVS Debug Workflow Tutorial', category: 'drc-lvs', type: 'video', desc: 'Step-by-step walkthrough of debugging LVS mismatches in Calibre RVE. Covers net opens, device mismatches, and CDL netlist comparison.', tags: 'LVS, Debug, Calibre, RVE', date: Date.now() - 86400000 * 10, size: '45 MB' },
+    { id: 's4', title: 'Physical Verification Sign-off Checklist', category: 'pv', type: 'notes', desc: 'Complete sign-off checklist for DRC, LVS, ERC, antenna, and density checks before tape-out. Covers Calibre and Pegasus flows.', tags: 'Sign-off, Checklist, DRC, LVS, ERC', date: Date.now() - 86400000 * 3, size: '0.2 MB' },
+    { id: 's5', title: 'Cadence Virtuoso Layout Editor Shortcuts', category: 'tools', type: 'pdf', desc: 'Essential keyboard shortcuts, bindkeys, and menu navigation for efficient layout editing in Cadence Virtuoso 6.1 and IC617.', tags: 'Virtuoso, Cadence, Shortcuts, Bindkeys', date: Date.now() - 86400000 * 7, size: '1.8 MB' },
+    { id: 's6', title: 'CMOS 28nm Layer Stack Reference', category: 'cmos', type: 'img', desc: 'Cross-section diagram of TSMC 28nm HPC+ metal interconnect stack showing layer names, thicknesses, and spacing rules.', tags: 'TSMC, 28nm, Stack, Layers, Metal', date: Date.now() - 86400000 * 14, size: '0.8 MB' },
+    { id: 's7', title: 'SKILL Scripting for Virtuoso Automation', category: 'scripting', type: 'pdf', desc: 'Practical SKILL programming guide for automating repetitive layout tasks, DRC batch runs, and report generation in Cadence Virtuoso.', tags: 'SKILL, Scripting, Automation, Cadence', date: Date.now() - 86400000 * 20, size: '2.1 MB' },
+    { id: 's8', title: 'Metal Density Violation Case Studies', category: 'pv', type: 'notes', desc: '11 real-world density violation scenarios with root cause analysis and recommended fix strategies. Covers CMP-related density rules.', tags: 'Density, CMP, DRC, Metal Fill', date: Date.now() - 86400000 * 1, size: '0.5 MB' },
+    { id: 's9', title: 'ICC2 Commands Cheatsheet — PV Flow', category: 'tools', type: 'pdf', desc: 'Quick reference for ICC2 Tcl commands covering route_eco, fix_route_drc, insert_antenna_diode, and sign-off flows.', tags: 'ICC2, Tcl, Commands, Route, PV', date: Date.now() - 86400000 * 4, size: '0.9 MB' },
+    { id: 's10', title: 'Analog Layout Matching Techniques', category: 'analog-layout', type: 'video', desc: 'Video lecture on device matching techniques including interdigitation, common centroid, dummy devices, and guard ring strategies for precision analog layout.', tags: 'Matching, Interdigitation, Analog, Layout', date: Date.now() - 86400000 * 30, size: '120 MB' },
+  ];
+  const existing = new Set(materials.map(m => m.id));
+  const newOnes = samples.filter(s => !existing.has(s.id));
+  materials = [...newOnes, ...materials];
+  save(); renderMaterials();
+  showToast(`Loaded ${newOnes.length} sample materials`);
+}
+
+// Init
+renderMaterials();
+</script>
+</body>
+</html>
