@@ -29,7 +29,8 @@
   --glow2:rgba(0,255,224,0.12);
 }
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-weight:300;overflow-x:hidden;line-height:1.7;cursor:none}
+body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;font-weight:300;overflow-x:hidden;line-height:1.7}
+@media(hover:hover){body{cursor:none}.btn-primary,.btn-sec,.f-input,.f-textarea,.f-submit,.spec-card,.skill-card,.proj-card{cursor:none}}
 
 /* Cursor */
 #cur{position:fixed;width:6px;height:6px;background:var(--cyan);border-radius:50%;pointer-events:none;z-index:9999;transition:transform 0.1s;mix-blend-mode:screen;box-shadow:0 0 10px var(--cyan)}
@@ -69,36 +70,21 @@ nav.scrolled{background:rgba(2,4,8,0.92);backdrop-filter:blur(20px);border-botto
 .nav-dl{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;padding:0.55rem 1.3rem;border:1px solid var(--cyan);border-radius:3px;color:var(--cyan);text-decoration:none;transition:all 0.3s;position:relative;overflow:hidden}
 .nav-dl::before{content:'';position:absolute;inset:0;background:var(--cyan);transform:translateX(-100%);transition:transform 0.3s;z-index:-1}
 .nav-dl:hover{color:var(--bg);background:var(--cyan)}
-/* Hide hamburger on desktop */
+/* ── Hamburger: hidden on desktop ─────────────────────── */
 .hamburger{
-    display:none;
+  display:none;
+  background:transparent;
+  border:1px solid var(--cyan);
+  border-radius:4px;
+  color:var(--cyan);
+  font-size:1.2rem;
+  padding:0.3rem 0.7rem;
+  cursor:pointer;
+  line-height:1;
+  transition:all 0.2s;
+  flex-shrink:0;
 }
-
-/* Mobile View */
-@media(max-width:768px){
-
-    .hamburger{
-        display:block;
-    }
-
-    .nav-links{
-        display:none;
-        flex-direction:column;
-        position:absolute;
-        top:80px;
-        right:20px;
-        background:#111;
-        padding:20px;
-        border:1px solid var(--cyan);
-        border-radius:8px;
-        gap:18px;
-        z-index:999;
-    }
-
-    .nav-links.active{
-        display:flex;
-    }
-}
+.hamburger:hover{background:rgba(0,200,255,0.1)}
 
 /* HERO */
 #hero{min-height:100vh;display:flex;align-items:center;position:relative;overflow:hidden;padding:6rem 3rem 4rem}
@@ -201,33 +187,10 @@ img, svg, video, iframe {
   display: block;
 }
 
-/* Ensure touch targets are finger-friendly */
-a, button, .btn, [role="button"] {
+/* Touch targets — only for explicit .btn class, not all anchors (breaks nav) */
+.btn {
   min-height: 44px;
   min-width: 44px;
-  padding: 0.5rem 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Fix flex/grid items on mobile */
-.grid, .cards, .skills-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-/* Timeline items should stack on mobile */
-.timeline-item {
-  display: flex;
-  flex-direction: column; /* Stack vertically on mobile */
-  gap: 0.75rem;
-}
-@media (min-width: 768px) {
-  .timeline-item {
-    flex-direction: row; /* Horizontal on desktop */
-  }
 }
 
 .sec-tag{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--cyan);margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem}
@@ -414,6 +377,9 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:2.5rem 3
 .gds-t4{background:linear-gradient(135deg,#180800,#301500)}
 .gds-t5{background:linear-gradient(135deg,#001020,#002040)}
 
+/* ══════════════════════════════════════════════
+   RESPONSIVE — tablet (≤960px)
+   ══════════════════════════════════════════════ */
 @media(max-width:960px){
   .hero-inner{grid-template-columns:1fr;gap:3rem}
   .hero-chip{display:none}
@@ -421,10 +387,104 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:2.5rem 3
   .skills-grid{grid-template-columns:repeat(2,1fr)}
   .projects-grid{grid-template-columns:1fr}
   nav{padding:1rem 1.5rem}
-  .nav-links{display:none}
+  .nav-links{display:flex}           /* keep visible on tablet */
   section{padding:5rem 1.5rem}
   .footer-inner{flex-direction:column;text-align:center}
   .f-row{grid-template-columns:1fr}
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — mobile (≤768px)
+   ══════════════════════════════════════════════ */
+@media(max-width:768px){
+
+  /* Nav */
+  nav{padding:0.9rem 1rem}
+  .hamburger{display:block}
+  .nav-logo{font-size:1rem}
+
+  .nav-links{
+    display:none;
+    flex-direction:column;
+    position:absolute;
+    top:60px;
+    left:0;
+    right:0;
+    background:rgba(3,6,16,0.98);
+    backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border2);
+    padding:1.2rem 1.5rem;
+    gap:1.2rem;
+    z-index:200;
+  }
+  .nav-links.active{display:flex}
+  .nav-links a{font-size:0.75rem;padding:0.4rem 0}
+  .nav-dl{display:none}              /* hide desktop CTA in mobile menu */
+
+  /* Hero */
+  #hero{padding:5rem 1rem 3rem;min-height:auto}
+  .hero-inner{grid-template-columns:1fr;gap:2rem;width:100%}
+  .hero-name{font-size:clamp(2.2rem,10vw,3.5rem);word-break:break-word}
+  .hero-eyebrow{font-size:0.6rem;letter-spacing:0.2em}
+  .hero-title{font-size:0.7rem;letter-spacing:0.06em;word-break:break-word}
+  .hero-desc{font-size:0.85rem;max-width:100%}
+  .hero-btns{gap:0.7rem}
+  .btn-primary,.btn-sec{
+    padding:0.75rem 1.3rem;
+    font-size:0.65rem;
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .hero-metrics{
+    grid-template-columns:repeat(3,1fr);
+    gap:0.5rem;
+    margin-top:2rem;
+    padding-top:1.5rem;
+  }
+  .metric{padding:0.7rem 0.4rem}
+  .metric-val{font-size:1.3rem}
+  .metric-lbl{font-size:0.5rem;letter-spacing:0.08em}
+
+  /* Sections */
+  section{padding:4rem 1rem}
+
+  /* About */
+  .about-layout{grid-template-columns:1fr;gap:2rem;margin-top:2rem}
+  .about-highlight{font-size:0.7rem;padding:1rem}
+
+  /* Skills */
+  .skills-grid{grid-template-columns:repeat(2,1fr);gap:0.8rem;margin-top:2rem}
+  .skill-card{padding:1rem 0.75rem}
+
+  /* Projects */
+  .projects-grid{grid-template-columns:1fr;margin-top:2rem}
+  .proj-specs{grid-template-columns:1fr 1fr}
+
+  /* Contact */
+  .contact-layout{grid-template-columns:1fr;gap:2rem;margin-top:2rem}
+  .c-val{font-size:0.78rem;word-break:break-all}
+  .f-row{grid-template-columns:1fr}
+  .f-submit{
+    align-self:stretch;
+    text-align:center;
+    min-height:48px;
+  }
+
+  /* Footer */
+  footer{padding:2rem 1rem}
+  .footer-inner{flex-direction:column;text-align:center;gap:0.7rem}
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE — small mobile (≤480px)
+   ══════════════════════════════════════════════ */
+@media(max-width:480px){
+  .hero-metrics{grid-template-columns:1fr;max-width:280px;margin-left:auto;margin-right:auto}
+  .skills-grid{grid-template-columns:1fr 1fr}
+  .hero-title{font-size:0.65rem}
+  .about-highlight{font-size:0.65rem;overflow-x:auto}
 }
 </style>
 </head>
@@ -474,10 +534,7 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:2.5rem 3
     <li><a href="study.html" target="_blank">Resources</a></li>
     <li><a href="#contact">Contact</a></li>
   </ul>
-  <a href="javascript:void(0);"
-   class="nav-dl hamburger"
-   onclick="toggleMenu()">☰
-</a>
+  <button class="hamburger" onclick="toggleMenu()" aria-label="Toggle menu">☰</button>
 </nav>
 
 <!-- HERO -->
@@ -914,16 +971,19 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:2.5rem 3
 const lbar=document.getElementById('lbar'),lpct=document.getElementById('lpct'),loader=document.getElementById('loader');
 let p=0;const iv=setInterval(()=>{p+=Math.random()*18;if(p>=100){p=100;clearInterval(iv);setTimeout(()=>loader.classList.add('hide'),500);}lbar.style.width=p+'%';lpct.textContent=Math.floor(p)+'%';},70);
 
-// Cursor
+// Cursor — desktop only
 const cur=document.getElementById('cur'),ring=document.getElementById('cur-ring');
+const isTouch=window.matchMedia('(hover:none)').matches;
+if(isTouch){cur.style.display='none';ring.style.display='none';}
 document.addEventListener('mousemove',e=>{
+  if(isTouch)return;
   cur.style.left=e.clientX-3+'px';cur.style.top=e.clientY-3+'px';
   ring.style.left=e.clientX+'px';ring.style.top=e.clientY+'px';
 });
-document.querySelectorAll('a,button,.proj-card,.spec-card,.skill-card,.tl-item,.metric,.c-item').forEach(el=>{
+if(!isTouch){document.querySelectorAll('a,button,.proj-card,.spec-card,.skill-card,.tl-item,.metric,.c-item').forEach(el=>{
   el.addEventListener('mouseenter',()=>{cur.style.transform='scale(3)';ring.style.transform='translate(-50%,-50%) scale(1.6)';ring.style.borderColor='rgba(0,200,255,0.8)';});
   el.addEventListener('mouseleave',()=>{cur.style.transform='scale(1)';ring.style.transform='translate(-50%,-50%) scale(1)';ring.style.borderColor='rgba(0,200,255,0.4)';});
-});
+});}
 
 // Nav scroll
 const nav=document.getElementById('nav');
