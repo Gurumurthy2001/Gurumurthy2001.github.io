@@ -560,12 +560,106 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 </div>
 
 <script>
-// ── State ──────────────────────────────────────
-let materials = JSON.parse(localStorage.getItem('vlsi_materials') || '[]');
-let currentCat = 'all';
+// ════════════════════════════════════════════════════════════════
+//  STORAGE ARCHITECTURE
+//  ─ IndexedDB  "vlsi_db"  (no size limit) → stores file blobs
+//    • store "files"   : { id, blob }
+//  ─ localStorage "vlsi_meta" (tiny, <50 KB) → metadata only
+//    • [{ id, title, category, type, desc, tags, link, date, size, hasBlob }]
+//
+//  WHY: localStorage cap is ~5 MB.  A single PDF turns into a
+//  ~4 MB base64 string and immediately exhausts it.  IndexedDB
+//  stores raw Blobs — no base64 inflation — and supports hundreds
+//  of MBs (limited only by disk, not browser policy).
+// ════════════════════════════════════════════════════════════════
+
+// ── IndexedDB setup ────────────────────────────
+const DB_NAME    = 'vlsi_db';
+const DB_VERSION = 1;
+const STORE_NAME = 'files';
+let   db         = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (db) { resolve(db); return; }
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE_NAME))
+        d.createObjectStore(STORE_NAME, { keyPath: 'id' });
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function idbSave(id, blob) {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put({ id, blob });
+    tx.oncomplete = resolve;
+    tx.onerror    = e => reject(e.target.error);
+  });
+}
+
+async function idbGet(id) {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const req = d.transaction(STORE_NAME, 'readonly')
+                 .objectStore(STORE_NAME).get(id);
+    req.onsuccess = e => resolve(e.target.result?.blob || null);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function idbDelete(id) {
+  const d = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = d.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror    = e => reject(e.target.error);
+  });
+}
+
+// ── Metadata (localStorage, no blobs) ─────────
+function loadMeta()    { return JSON.parse(localStorage.getItem('vlsi_meta') || '[]'); }
+function saveMeta(arr) { localStorage.setItem('vlsi_meta', JSON.stringify(arr)); }
+
+// ── In-memory state ────────────────────────────
+let materials   = loadMeta();   // metadata array — NO dataUrl here
+let currentCat  = 'all';
 let currentView = 'grid';
-let editingId = null;
-let pendingFile = null;
+let editingId   = null;
+let pendingFile = null;          // { blob, objectUrl, type, name, size }
+
+// ── Migrate old localStorage data ─────────────
+// If the user had data stored the old way (with dataUrl in localStorage),
+// migrate it to IndexedDB now and remove the heavy data from localStorage.
+(async function migrate() {
+  const old = JSON.parse(localStorage.getItem('vlsi_materials') || '[]');
+  if (!old.length) return;
+  showToast('Migrating existing data to new storage…');
+  for (const m of old) {
+    if (m.dataUrl) {
+      try {
+        const res  = await fetch(m.dataUrl);
+        const blob = await res.blob();
+        await idbSave(m.id, blob);
+      } catch(e) { /* skip if corrupt */ }
+    }
+    const meta = { ...m };
+    delete meta.dataUrl;
+    meta.hasBlob = !!m.dataUrl;
+    // merge into materials if not already present
+    if (!materials.find(x => x.id === m.id)) materials.push(meta);
+  }
+  saveMeta(materials);
+  localStorage.removeItem('vlsi_materials');
+  renderMaterials();
+  showToast('Migration complete ✓');
+})();
 
 // ── Cursor (desktop only) ──────────────────────
 const cur = document.getElementById('cur'), ring = document.getElementById('cur-ring');
@@ -576,45 +670,40 @@ if (!isTouch) {
     ring.style.left = e.clientX + 'px'; ring.style.top = e.clientY + 'px';
   });
   document.querySelectorAll('button,input,select,textarea,label,.cat-btn,.mat-card').forEach(el => {
-    el.addEventListener('mouseenter', () => { cur.style.transform = 'scale(3)'; ring.style.transform = 'translate(-50%,-50%) scale(1.5)'; ring.style.borderColor = 'rgba(0,200,255,0.8)'; });
-    el.addEventListener('mouseleave', () => { cur.style.transform = 'scale(1)'; ring.style.transform = 'translate(-50%,-50%) scale(1)'; ring.style.borderColor = 'rgba(0,200,255,0.4)'; });
+    el.addEventListener('mouseenter', () => { cur.style.transform='scale(3)'; ring.style.transform='translate(-50%,-50%) scale(1.5)'; ring.style.borderColor='rgba(0,200,255,0.8)'; });
+    el.addEventListener('mouseleave', () => { cur.style.transform='scale(1)';  ring.style.transform='translate(-50%,-50%) scale(1)';   ring.style.borderColor='rgba(0,200,255,0.4)'; });
   });
 }
 
 // ── Owner upload gate ──────────────────────────
 const params = new URLSearchParams(window.location.search);
-if (params.get('gm') === 'true') {
-  document.getElementById('owner-upload').style.display = 'block';
-}
+if (params.get('gm') === 'true') document.getElementById('owner-upload').style.display = 'block';
 
-// ── Mobile load button visibility ─────────────
+// ── Mobile load button ─────────────────────────
 function checkMobileLoadBtn() {
-  const isMobile = window.innerWidth <= 900;
-  document.getElementById('mobile-load-btn').style.display = isMobile ? 'block' : 'none';
+  document.getElementById('mobile-load-btn').style.display = window.innerWidth <= 900 ? 'block' : 'none';
 }
 checkMobileLoadBtn();
 window.addEventListener('resize', checkMobileLoadBtn);
 
-// ── Persist ────────────────────────────────────
-function save() { localStorage.setItem('vlsi_materials', JSON.stringify(materials)); }
-
 // ── Toast ──────────────────────────────────────
-function showToast(msg) {
+function showToast(msg, color) {
   const t = document.getElementById('toast');
   const d = document.createElement('div');
   d.className = 'toast-item';
-  d.innerHTML = `<span class="toast-dot"></span>${msg}`;
+  if (color) d.style.color = color;
+  d.innerHTML = `<span class="toast-dot" style="${color?'background:'+color+';box-shadow:0 0 6px '+color:''}"></span>${msg}`;
   t.appendChild(d);
   setTimeout(() => d.classList.add('show'), 50);
-  setTimeout(() => { d.classList.remove('show'); setTimeout(() => d.remove(), 400); }, 3000);
+  setTimeout(() => { d.classList.remove('show'); setTimeout(() => d.remove(), 400); }, 3500);
 }
 
-// ── Type config ────────────────────────────────
+// ── Config ─────────────────────────────────────
 const typeConfig = {
-  pdf:   { icon: '📄', label: 'PDF',   badgeClass: 'badge-pdf',   thumbClass: 'mat-thumb-pdf' },
-  img:   { icon: '🖼',  label: 'IMG',   badgeClass: 'badge-img',   thumbClass: 'mat-thumb-img' },
-  video: { icon: '🎬', label: 'VIDEO', badgeClass: 'badge-video', thumbClass: 'mat-thumb-video' },
-  notes: { icon: '📝', label: 'NOTES', badgeClass: 'badge-notes', thumbClass: 'mat-thumb-notes' }
+  pdf:   { icon:'📄', label:'PDF',   badgeClass:'badge-pdf',   thumbClass:'mat-thumb-pdf' },
+  img:   { icon:'🖼',  label:'IMG',   badgeClass:'badge-img',   thumbClass:'mat-thumb-img' },
+  video: { icon:'🎬', label:'VIDEO', badgeClass:'badge-video', thumbClass:'mat-thumb-video' },
+  notes: { icon:'📝', label:'NOTES', badgeClass:'badge-notes', thumbClass:'mat-thumb-notes' }
 };
 const catLabels = {
   'drc-lvs':'DRC / LVS','analog-layout':'Analog Layout','pv':'Physical Verif.',
@@ -622,21 +711,25 @@ const catLabels = {
 };
 
 // ── Render cards ───────────────────────────────
+// Thumbnails for images are loaded async from IndexedDB so the grid
+// renders immediately with icons, then swaps in real previews.
 function renderMaterials() {
   const grid = document.getElementById('material-grid');
-  const q = document.getElementById('search-input').value.toLowerCase();
+  const q    = document.getElementById('search-input').value.toLowerCase();
   const sort = document.getElementById('sort-select').value;
 
   let filtered = materials.filter(m => {
     const matchCat = currentCat === 'all' || m.category === currentCat;
-    const matchQ = !q || m.title.toLowerCase().includes(q) || (m.desc||'').toLowerCase().includes(q) || (m.tags||'').toLowerCase().includes(q);
+    const matchQ   = !q || m.title.toLowerCase().includes(q)
+                       || (m.desc||'').toLowerCase().includes(q)
+                       || (m.tags||'').toLowerCase().includes(q);
     return matchCat && matchQ;
   });
 
   if (sort === 'newest') filtered.sort((a,b) => b.date - a.date);
   else if (sort === 'oldest') filtered.sort((a,b) => a.date - b.date);
-  else if (sort === 'name') filtered.sort((a,b) => a.title.localeCompare(b.title));
-  else if (sort === 'type') filtered.sort((a,b) => a.type.localeCompare(b.type));
+  else if (sort === 'name')   filtered.sort((a,b) => a.title.localeCompare(b.title));
+  else if (sort === 'type')   filtered.sort((a,b) => a.type.localeCompare(b.type));
 
   updateCounts();
 
@@ -646,21 +739,17 @@ function renderMaterials() {
   }
 
   grid.innerHTML = filtered.map((m, i) => {
-    const tc = typeConfig[m.type] || typeConfig.notes;
+    const tc      = typeConfig[m.type] || typeConfig.notes;
     const dateStr = new Date(m.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-    const thumbContent = m.type === 'img' && m.dataUrl
-      ? `<img src="${m.dataUrl}" style="width:100%;height:100%;object-fit:cover" alt="${m.title}"/>`
-      : `<span class="thumb-icon">${tc.icon}</span>`;
-
     return `
     <div class="mat-card" style="animation-delay:${i*0.04}s" onclick="viewMaterial('${m.id}')">
-      <div class="mat-thumb ${tc.thumbClass}">
-        ${thumbContent}
+      <div class="mat-thumb ${tc.thumbClass}" id="thumb-${m.id}">
+        <span class="thumb-icon">${tc.icon}</span>
         <span class="thumb-type-badge ${tc.badgeClass}">${tc.label}</span>
         <div class="mat-card-actions">
           <button class="act-btn" onclick="event.stopPropagation();viewMaterial('${m.id}')" title="View">👁</button>
           <button class="act-btn" onclick="event.stopPropagation();editMaterial('${m.id}')" title="Edit">✏</button>
-          ${m.link ? `<button class="act-btn" onclick="event.stopPropagation();openLink('${m.link}')" title="Open link">↗</button>` : ''}
+          ${m.link ? `<button class="act-btn" onclick="event.stopPropagation();openLink('${m.link}')" title="Open">↗</button>` : ''}
           <button class="act-btn del" onclick="event.stopPropagation();deleteMaterial('${m.id}')" title="Delete">✕</button>
         </div>
       </div>
@@ -676,6 +765,22 @@ function renderMaterials() {
       </div>
     </div>`;
   }).join('');
+
+  // Async: swap icon → real image thumbnail for image-type cards
+  filtered.forEach(m => {
+    if (m.type === 'img' && m.hasBlob) {
+      idbGet(m.id).then(blob => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const el  = document.getElementById(`thumb-${m.id}`);
+        if (!el) return;
+        const img = document.createElement('img');
+        img.src   = url;
+        img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
+        img.onload = () => { el.querySelector('.thumb-icon')?.remove(); el.appendChild(img); };
+      }).catch(() => {});
+    }
+  });
 }
 
 function updateCounts() {
@@ -689,13 +794,11 @@ function updateCounts() {
   document.getElementById('vid-count').textContent   = materials.filter(m => m.type === 'video').length;
 }
 
-// ── Filter — sync sidebar + pills ─────────────
-function filterCat(cat, btn) {
+// ── Filter ─────────────────────────────────────
+function filterCat(cat) {
   currentCat = cat;
-  // sidebar buttons
   document.querySelectorAll('.cat-btn[data-cat]').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
-  // mobile pills
-  document.querySelectorAll('.pill[data-cat]').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  document.querySelectorAll('.pill[data-cat]').forEach(b   => b.classList.toggle('active', b.dataset.cat === cat));
   renderMaterials();
 }
 
@@ -710,49 +813,50 @@ function setView(v) {
 document.getElementById('file-input').addEventListener('change', e => handleFiles(e.target.files));
 const dropZone = document.getElementById('drop-zone');
 if (dropZone) {
-  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
-  dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag'); });
+  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag'));
+  dropZone.addEventListener('drop',      e  => { e.preventDefault(); dropZone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
 }
 
 function handleFiles(files) { Array.from(files).forEach(processFile); }
 
 function processFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
+  const ext     = file.name.split('.').pop().toLowerCase();
   const typeMap = { pdf:'pdf', png:'img', jpg:'img', jpeg:'img', gif:'img', webp:'img', mp4:'video', webm:'video', mov:'video' };
-  const type = typeMap[ext] || 'notes';
-  const size = file.size > 1024*1024 ? (file.size/(1024*1024)).toFixed(1)+' MB' : (file.size/1024).toFixed(0)+' KB';
+  const type    = typeMap[ext] || 'notes';
+  const size    = file.size > 1024*1024 ? (file.size/(1024*1024)).toFixed(1)+' MB' : (file.size/1024).toFixed(0)+' KB';
 
-  const prog = document.getElementById('upload-progress');
-  const bar = document.getElementById('prog-bar');
-  const pct = document.getElementById('prog-pct');
+  // Progress bar
+  const prog  = document.getElementById('upload-progress');
+  const bar   = document.getElementById('prog-bar');
+  const pct   = document.getElementById('prog-pct');
   const fname = document.getElementById('prog-filename');
   if (prog) {
     prog.classList.add('show'); fname.textContent = file.name;
     let p = 0;
     const iv = setInterval(() => {
-      p += Math.random() * 20; if (p >= 100) { p = 100; clearInterval(iv); setTimeout(() => prog.classList.remove('show'), 800); }
+      p += Math.random() * 22;
+      if (p >= 100) { p = 100; clearInterval(iv); setTimeout(() => prog.classList.remove('show'), 700); }
       bar.style.width = p + '%'; pct.textContent = Math.floor(p) + '%';
-    }, 80);
+    }, 70);
   }
 
-  const reader = new FileReader();
-  reader.onload = e2 => {
-    pendingFile = { dataUrl: e2.target.result, type, name: file.name.replace(/\.[^.]+$/, ''), size };
-    openModal();
-    document.getElementById('m-title').value = file.name.replace(/\.[^.]+$/, '');
-    document.getElementById('m-type').value = type;
-    showFilePreview(e2.target.result, type);
-  };
-  reader.readAsDataURL(file);
+  // Store as Blob (no base64 — no storage inflation)
+  const objectUrl = URL.createObjectURL(file);
+  pendingFile = { blob: file, objectUrl, type, name: file.name.replace(/\.[^.]+$/, ''), size };
+
+  openModal();
+  document.getElementById('m-title').value = file.name.replace(/\.[^.]+$/, '');
+  document.getElementById('m-type').value  = type;
+  showModalPreview(objectUrl, type);
 }
 
-function showFilePreview(dataUrl, type) {
+function showModalPreview(url, type) {
   const area = document.getElementById('modal-preview-area');
-  if (type === 'img')   area.innerHTML = `<img class="modal-preview" src="${dataUrl}" alt="Preview"/>`;
-  else if (type === 'video') area.innerHTML = `<video class="modal-video" src="${dataUrl}" controls style="max-height:220px"></video>`;
-  else if (type === 'pdf')   area.innerHTML = `<div class="modal-pdf-info">📄 PDF ready to save · Tap "View" after saving to open it</div>`;
-  else area.innerHTML = '';
+  if (type === 'img')        area.innerHTML = `<img class="modal-preview" src="${url}" alt="Preview"/>`;
+  else if (type === 'video') area.innerHTML = `<video class="modal-video" src="${url}" controls style="max-height:220px"></video>`;
+  else if (type === 'pdf')   area.innerHTML = `<div class="modal-pdf-info">📄 PDF ready · tap "Save" then "👁 View" to open it</div>`;
+  else                       area.innerHTML = '';
 }
 
 // ── Add/Edit modal ─────────────────────────────
@@ -768,13 +872,19 @@ function openModal(id = null) {
       document.getElementById('m-desc').value     = m.desc || '';
       document.getElementById('m-tags').value     = m.tags || '';
       document.getElementById('m-link').value     = m.link || '';
-      if (m.dataUrl) showFilePreview(m.dataUrl, m.type);
-      else document.getElementById('modal-preview-area').innerHTML = '';
+      // Load blob for preview
+      if (m.hasBlob) {
+        idbGet(m.id).then(blob => {
+          if (blob) showModalPreview(URL.createObjectURL(blob), m.type);
+        });
+      } else {
+        document.getElementById('modal-preview-area').innerHTML = '';
+      }
     }
   } else if (!pendingFile) {
     ['m-title','m-desc','m-tags','m-link'].forEach(id2 => document.getElementById(id2).value = '');
     document.getElementById('m-category').value = 'drc-lvs';
-    document.getElementById('m-type').value = 'pdf';
+    document.getElementById('m-type').value     = 'pdf';
     document.getElementById('modal-preview-area').innerHTML = '';
   }
   document.getElementById('modal-overlay').classList.add('show');
@@ -785,89 +895,143 @@ function closeModal() {
   pendingFile = null; editingId = null;
 }
 
-function saveMaterial() {
+async function saveMaterial() {
   const title = document.getElementById('m-title').value.trim();
   if (!title) { showToast('Please enter a title'); return; }
-  const existing = editingId ? materials.find(x => x.id === editingId) : null;
-  const m = {
-    id:       editingId || Date.now().toString(),
+
+  const existingMeta = editingId ? materials.find(x => x.id === editingId) : null;
+  const id = editingId || Date.now().toString();
+
+  // Save blob to IndexedDB if we have a new file
+  if (pendingFile?.blob) {
+    try {
+      await idbSave(id, pendingFile.blob);
+    } catch (e) {
+      showToast('Storage error: ' + e.message, 'var(--red)');
+      return;
+    }
+  }
+
+  const meta = {
+    id,
     title,
     category: document.getElementById('m-category').value,
     type:     document.getElementById('m-type').value,
     desc:     document.getElementById('m-desc').value.trim(),
     tags:     document.getElementById('m-tags').value.trim(),
     link:     document.getElementById('m-link').value.trim(),
-    date:     existing?.date || Date.now(),
-    dataUrl:  pendingFile?.dataUrl || existing?.dataUrl || null,
-    size:     pendingFile?.size    || existing?.size    || null,
+    date:     existingMeta?.date || Date.now(),
+    size:     pendingFile?.size  || existingMeta?.size || null,
+    hasBlob:  !!(pendingFile?.blob || existingMeta?.hasBlob),
   };
-  if (editingId) { const idx = materials.findIndex(x => x.id === editingId); if (idx > -1) materials[idx] = m; }
-  else materials.unshift(m);
-  save(); renderMaterials(); closeModal();
-  showToast(editingId ? 'Material updated' : 'Material saved');
+
+  if (editingId) {
+    const idx = materials.findIndex(x => x.id === editingId);
+    if (idx > -1) materials[idx] = meta;
+  } else {
+    materials.unshift(meta);
+  }
+
+  saveMeta(materials);
+  renderMaterials();
+  closeModal();
+  showToast(editingId ? 'Material updated ✓' : 'Material saved ✓');
 }
 
 function editMaterial(id) { openModal(id); }
 
-function deleteMaterial(id) {
+async function deleteMaterial(id) {
   if (!confirm('Delete this material?')) return;
+  await idbDelete(id).catch(() => {});
   materials = materials.filter(m => m.id !== id);
-  save(); renderMaterials(); showToast('Material deleted');
+  saveMeta(materials);
+  renderMaterials();
+  showToast('Deleted');
 }
 
 function openLink(url) { window.open(url, '_blank', 'noopener'); }
 
 // ── View material ──────────────────────────────
-// KEY FIX: PDF is rendered in a responsive iframe with a data URI.
-// For browsers that block data URI iframes (some mobile browsers),
-// we provide a download fallback link automatically.
-function viewMaterial(id) {
+// Blobs are loaded from IndexedDB on demand, then turned into
+// temporary object URLs for the viewer. No data:// URLs needed.
+async function viewMaterial(id) {
   const m = materials.find(x => x.id === id);
   if (!m) return;
-  const tc = typeConfig[m.type] || typeConfig.notes;
+
+  const tc      = typeConfig[m.type] || typeConfig.notes;
   const dateStr = new Date(m.date).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+  // Show modal immediately with a loading state
+  document.getElementById('view-title').textContent = m.title;
+  document.getElementById('view-body').innerHTML    = buildViewMeta(m, tc, dateStr, '');
+  document.getElementById('view-overlay').classList.add('show');
 
   let previewHtml = '';
 
-  if (m.type === 'img' && m.dataUrl) {
-    previewHtml = `<img class="img-viewer" src="${m.dataUrl}" alt="${m.title}"/>`;
+  if (m.hasBlob) {
+    try {
+      const blob = await idbGet(id);
+      if (blob) {
+        const url = URL.createObjectURL(blob);
 
-  } else if (m.type === 'video' && m.dataUrl) {
-    previewHtml = `<video class="video-viewer" src="${m.dataUrl}" controls></video>`;
+        if (m.type === 'img') {
+          previewHtml = `<img class="img-viewer" src="${url}" alt="${m.title}"/>`;
 
-  } else if (m.type === 'pdf' && m.dataUrl) {
-    // Responsive PDF iframe with fallback for mobile browsers that block data-URI iframes
-    previewHtml = `
-      <div class="pdf-viewer-wrap" id="pdf-wrap-${m.id}">
-        <iframe
-          src="${m.dataUrl}"
-          title="${m.title}"
-          id="pdf-iframe-${m.id}"
-          onload="pdfLoaded('${m.id}')"
-          onerror="pdfFallback('${m.id}','${m.dataUrl}')">
-        </iframe>
-        <div class="pdf-fallback" id="pdf-fb-${m.id}">
-          <div class="pdf-fallback-icon">📄</div>
-          <div class="pdf-fallback-msg">Your browser can't display PDFs inline.<br>Use the button below to open or download it.</div>
-          <a href="${m.dataUrl}" download="${m.title}.pdf">⬇ Download PDF</a>
-          <a href="${m.dataUrl}" target="_blank">↗ Open in new tab</a>
-        </div>
-      </div>`;
+        } else if (m.type === 'video') {
+          previewHtml = `<video class="video-viewer" src="${url}" controls></video>`;
 
+        } else if (m.type === 'pdf') {
+          // Convert blob → object URL → iframe (works on all browsers,
+          // no 5 MB data-URI limit, no base64 inflation)
+          previewHtml = `
+            <div class="pdf-viewer-wrap" id="pdf-wrap-${id}">
+              <iframe src="${url}" title="${m.title}"
+                id="pdf-iframe-${id}"
+                onload="pdfLoaded('${id}')"
+                onerror="pdfFallback('${id}','${url}','${encodeURIComponent(m.title)}')">
+              </iframe>
+              <div class="pdf-fallback" id="pdf-fb-${id}">
+                <div class="pdf-fallback-icon">📄</div>
+                <div class="pdf-fallback-msg">PDF can't display inline in this browser.<br>Use the buttons below.</div>
+                <a href="${url}" download="${m.title}.pdf">⬇ Download PDF</a>
+                <a href="${url}" target="_blank" rel="noopener">↗ Open in new tab</a>
+              </div>
+            </div>`;
+        }
+      } else {
+        previewHtml = `<div style="padding:1rem;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--red);border:1px solid rgba(255,68,102,0.3);border-radius:4px;margin-bottom:1.2rem">File not found in local storage. It may have been cleared.</div>`;
+      }
+    } catch(e) {
+      previewHtml = `<div style="padding:1rem;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;color:var(--red);border:1px solid rgba(255,68,102,0.3);border-radius:4px;margin-bottom:1.2rem">Could not load file: ${e.message}</div>`;
+    }
   } else if (m.type === 'pdf' && m.link) {
-    // External PDF link — use Google Docs viewer so it works everywhere including mobile
+    // External PDF via Google Docs viewer (works on mobile too)
     const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(m.link)}&embedded=true`;
-    previewHtml = `
-      <div class="pdf-viewer-wrap">
-        <iframe src="${viewerUrl}" title="${m.title}"></iframe>
-      </div>`;
-
+    previewHtml = `<div class="pdf-viewer-wrap"><iframe src="${viewerUrl}" title="${m.title}"></iframe></div>`;
   } else {
     previewHtml = `<div style="height:110px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:4px;margin-bottom:1.2rem;background:var(--surface);font-size:2.8rem">${tc.icon}</div>`;
   }
 
-  document.getElementById('view-title').textContent = m.title;
-  document.getElementById('view-body').innerHTML = `
+  // Inject preview into already-open modal
+  document.getElementById('view-body').innerHTML = buildViewMeta(m, tc, dateStr, previewHtml);
+
+  // Safari mobile: if PDF iframe is blank after 1.5 s, show fallback
+  if (m.type === 'pdf' && m.hasBlob) {
+    setTimeout(() => {
+      try {
+        const iframe = document.getElementById(`pdf-iframe-${id}`);
+        if (iframe) {
+          const iDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (!iDoc || !iDoc.body || iDoc.body.innerHTML === '')
+            pdfFallback(id, iframe.src, encodeURIComponent(m.title));
+        }
+      } catch(e) {}
+    }, 1800);
+  }
+}
+
+function buildViewMeta(m, tc, dateStr, previewHtml) {
+  return `
     ${previewHtml}
     <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
       <span class="thumb-type-badge ${tc.badgeClass}" style="position:static">${tc.label}</span>
@@ -882,31 +1046,15 @@ function viewMaterial(id) {
       <button class="btn-cancel" onclick="closeView();editMaterial('${m.id}')">Edit</button>
       <button class="btn-cancel" onclick="deleteMaterial('${m.id}');closeView()" style="color:var(--red);border-color:rgba(255,68,102,0.3)">Delete</button>
     </div>`;
-
-  document.getElementById('view-overlay').classList.add('show');
-
-  // Detect if iframe failed to load PDF (common on mobile Safari/Chrome)
-  setTimeout(() => {
-    const iframe = document.getElementById(`pdf-iframe-${m.id}`);
-    if (iframe) {
-      try {
-        // If iframe content is empty/about:blank it failed
-        const iDoc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (!iDoc || iDoc.body.innerHTML === '') pdfFallback(m.id, m.dataUrl);
-      } catch(e) { /* cross-origin — can't check, leave as-is */ }
-    }
-  }, 1500);
 }
 
 function pdfLoaded(id) {
-  // iframe loaded fine — hide fallback if it was shown
   const fb = document.getElementById(`pdf-fb-${id}`);
   if (fb) fb.style.display = 'none';
 }
-
-function pdfFallback(id, dataUrl) {
+function pdfFallback(id, url, encodedTitle) {
   const iframe = document.getElementById(`pdf-iframe-${id}`);
-  const fb = document.getElementById(`pdf-fb-${id}`);
+  const fb     = document.getElementById(`pdf-fb-${id}`);
   if (iframe) iframe.style.display = 'none';
   if (fb) { fb.style.display = 'flex'; }
 }
@@ -919,22 +1067,24 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal
 // ── Sample data ────────────────────────────────
 function addSampleData() {
   const samples = [
-    { id:'s1', title:'Calibre DRC SVRF Rules Reference', category:'drc-lvs', type:'pdf', desc:'Complete reference guide for writing and interpreting Calibre SVRF design rule check decks. Covers spacing, width, enclosure, antenna, and density rules.', tags:'DRC, Calibre, SVRF, Rules', link:'https://docs.google.com', date:Date.now()-86400000*2, size:'3.4 MB' },
-    { id:'s2', title:'Bandgap Reference Layout — Common Centroid', category:'analog-layout', type:'img', desc:'Screenshot of common-centroid matching technique applied to PTAT/CTAT current mirror pair in 28nm BGR layout. Shows guard ring placement.', tags:'BGR, Matching, Common-centroid, 28nm', date:Date.now()-86400000*5, size:'1.2 MB' },
-    { id:'s3', title:'LVS Debug Workflow Tutorial', category:'drc-lvs', type:'video', desc:'Step-by-step walkthrough of debugging LVS mismatches in Calibre RVE. Covers net opens, device mismatches, and CDL netlist comparison.', tags:'LVS, Debug, Calibre, RVE', date:Date.now()-86400000*10, size:'45 MB' },
-    { id:'s4', title:'Physical Verification Sign-off Checklist', category:'pv', type:'notes', desc:'Complete sign-off checklist for DRC, LVS, ERC, antenna, and density checks before tape-out. Covers Calibre and Pegasus flows.', tags:'Sign-off, Checklist, DRC, LVS, ERC', date:Date.now()-86400000*3, size:'0.2 MB' },
-    { id:'s5', title:'Cadence Virtuoso Layout Editor Shortcuts', category:'tools', type:'pdf', desc:'Essential keyboard shortcuts, bindkeys, and menu navigation for efficient layout editing in Cadence Virtuoso 6.1 and IC617.', tags:'Virtuoso, Cadence, Shortcuts, Bindkeys', link:'https://docs.google.com', date:Date.now()-86400000*7, size:'1.8 MB' },
-    { id:'s6', title:'CMOS 28nm Layer Stack Reference', category:'cmos', type:'img', desc:'Cross-section diagram of TSMC 28nm HPC+ metal interconnect stack showing layer names, thicknesses, and spacing rules.', tags:'TSMC, 28nm, Stack, Layers, Metal', date:Date.now()-86400000*14, size:'0.8 MB' },
-    { id:'s7', title:'SKILL Scripting for Virtuoso Automation', category:'scripting', type:'pdf', desc:'Practical SKILL programming guide for automating repetitive layout tasks, DRC batch runs, and report generation in Cadence Virtuoso.', tags:'SKILL, Scripting, Automation, Cadence', link:'https://docs.google.com', date:Date.now()-86400000*20, size:'2.1 MB' },
-    { id:'s8', title:'Metal Density Violation Case Studies', category:'pv', type:'notes', desc:'11 real-world density violation scenarios with root cause analysis and recommended fix strategies. Covers CMP-related density rules.', tags:'Density, CMP, DRC, Metal Fill', date:Date.now()-86400000*1, size:'0.5 MB' },
-    { id:'s9', title:'ICC2 Commands Cheatsheet — PV Flow', category:'tools', type:'pdf', desc:'Quick reference for ICC2 Tcl commands covering route_eco, fix_route_drc, insert_antenna_diode, and sign-off flows.', tags:'ICC2, Tcl, Commands, Route, PV', link:'https://docs.google.com', date:Date.now()-86400000*4, size:'0.9 MB' },
-    { id:'s10', title:'Analog Layout Matching Techniques', category:'analog-layout', type:'video', desc:'Video lecture on device matching techniques including interdigitation, common centroid, dummy devices, and guard ring strategies for precision analog layout.', tags:'Matching, Interdigitation, Analog, Layout', date:Date.now()-86400000*30, size:'120 MB' },
+    { id:'s1',  title:'Calibre DRC SVRF Rules Reference',         category:'drc-lvs',       type:'pdf',   desc:'Complete reference guide for writing and interpreting Calibre SVRF design rule check decks.', tags:'DRC, Calibre, SVRF, Rules',             link:'https://docs.google.com', date:Date.now()-86400000*2,  size:'3.4 MB' },
+    { id:'s2',  title:'Bandgap Reference Layout — Common Centroid',category:'analog-layout', type:'img',   desc:'Common-centroid matching technique for PTAT/CTAT pair in 28nm BGR layout with guard ring.',    tags:'BGR, Matching, Common-centroid, 28nm',                              date:Date.now()-86400000*5,  size:'1.2 MB' },
+    { id:'s3',  title:'LVS Debug Workflow Tutorial',               category:'drc-lvs',       type:'video', desc:'Step-by-step walkthrough of debugging LVS mismatches in Calibre RVE.',                         tags:'LVS, Debug, Calibre, RVE',                                          date:Date.now()-86400000*10, size:'45 MB'  },
+    { id:'s4',  title:'Physical Verification Sign-off Checklist',  category:'pv',            type:'notes', desc:'Complete sign-off checklist for DRC, LVS, ERC, antenna, and density checks before tape-out.', tags:'Sign-off, Checklist, DRC, LVS, ERC',                                date:Date.now()-86400000*3,  size:'0.2 MB' },
+    { id:'s5',  title:'Cadence Virtuoso Layout Editor Shortcuts',  category:'tools',         type:'pdf',   desc:'Essential keyboard shortcuts and bindkeys for efficient layout editing in Virtuoso.',           tags:'Virtuoso, Cadence, Shortcuts, Bindkeys', link:'https://docs.google.com', date:Date.now()-86400000*7,  size:'1.8 MB' },
+    { id:'s6',  title:'CMOS 28nm Layer Stack Reference',           category:'cmos',          type:'img',   desc:'Cross-section of TSMC 28nm HPC+ metal interconnect stack with layer names and spacing.',        tags:'TSMC, 28nm, Stack, Layers, Metal',                                  date:Date.now()-86400000*14, size:'0.8 MB' },
+    { id:'s7',  title:'SKILL Scripting for Virtuoso Automation',   category:'scripting',     type:'pdf',   desc:'Practical SKILL programming guide for automating layout tasks and DRC batch runs.',              tags:'SKILL, Scripting, Automation, Cadence',  link:'https://docs.google.com', date:Date.now()-86400000*20, size:'2.1 MB' },
+    { id:'s8',  title:'Metal Density Violation Case Studies',      category:'pv',            type:'notes', desc:'11 real-world density violation scenarios with root cause analysis and fix strategies.',          tags:'Density, CMP, DRC, Metal Fill',                                     date:Date.now()-86400000*1,  size:'0.5 MB' },
+    { id:'s9',  title:'ICC2 Commands Cheatsheet — PV Flow',        category:'tools',         type:'pdf',   desc:'Quick reference for ICC2 Tcl commands: route_eco, fix_route_drc, insert_antenna_diode.',        tags:'ICC2, Tcl, Commands, Route, PV',         link:'https://docs.google.com', date:Date.now()-86400000*4,  size:'0.9 MB' },
+    { id:'s10', title:'Analog Layout Matching Techniques',         category:'analog-layout', type:'video', desc:'Video lecture on interdigitation, common centroid, dummy devices, and guard ring strategies.',   tags:'Matching, Interdigitation, Analog, Layout',                         date:Date.now()-86400000*30, size:'120 MB' },
   ];
   const existing = new Set(materials.map(m => m.id));
-  const newOnes = samples.filter(s => !existing.has(s.id));
+  // Sample entries have no blob — they show their external link or just metadata
+  const newOnes  = samples.filter(s => !existing.has(s.id)).map(s => ({ ...s, hasBlob: false }));
   materials = [...newOnes, ...materials];
-  save(); renderMaterials();
-  showToast(`Loaded ${newOnes.length} sample materials`);
+  saveMeta(materials);
+  renderMaterials();
+  showToast(`Loaded ${newOnes.length} sample materials ✓`);
 }
 
 // ── Init ───────────────────────────────────────
