@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
@@ -368,12 +368,12 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
 <div id="toast"></div>
 
 <!-- NAV -->
-<nav>
+<!-- <nav>
   <a href="#" class="nav-logo">A T <span>Gurumurthy</span> · VLSI</a>
   <a href="index.html" class="nav-back">← Portfolio</a>
 </nav>
 
-<!-- PAGE HEADER -->
+
 <div class="page-header">
   <div class="ph-tag"></div>
   <h1 class="ph-title">VLSI Study <span>Material</span></h1>
@@ -386,7 +386,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
   </div>
 </div>
 
-<!-- MOBILE CATEGORY PILLS (shown instead of sidebar on mobile) -->
 <div style="max-width:1200px;margin:0 auto;padding:0 1rem">
   <div class="cat-pills" id="cat-pills">
     <button class="pill active" data-cat="all" onclick="filterCat('all',this)">All</button>
@@ -400,10 +399,8 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
   </div>
 </div>
 
-<!-- MAIN -->
 <div class="main-wrap">
 
-  <!-- SIDEBAR (desktop) -->
   <aside class="sidebar">
     <div class="sidebar-title">Categories</div>
     <button class="cat-btn active" data-cat="all" onclick="filterCat('all',this)">
@@ -463,16 +460,13 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
     </button>
   </aside>
 
-  <!-- CONTENT -->
   <div>
-    <!-- Load samples CTA on mobile (shown at top of content when sidebar is hidden) -->
     <div id="mobile-load-btn" style="display:none;margin-bottom:0.8rem">
       <button class="cat-btn" onclick="addSampleData()" style="border-color:rgba(0,200,255,0.3);color:var(--cyan2);width:100%">
         <span>+</span> Load Sample Materials
       </button>
     </div>
 
-    <!-- Search + Controls -->
     <div class="search-wrap">
       <input class="search-input" type="text" placeholder="Search materials..." id="search-input" oninput="renderMaterials()"/>
       <select class="sort-select" id="sort-select" onchange="renderMaterials()">
@@ -487,12 +481,10 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
       </div>
     </div>
 
-    <!-- Grid -->
     <div class="material-grid" id="material-grid"></div>
   </div>
 </div>
 
-<!-- ADD/EDIT MODAL -->
 <div id="modal-overlay">
   <div class="modal-box">
     <div class="modal-header">
@@ -548,7 +540,6 @@ body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradie
   </div>
 </div>
 
-<!-- VIEW MODAL — fixed + responsive PDF viewer -->
 <div class="view-overlay" id="view-overlay">
   <div class="view-box">
     <div class="view-header">
@@ -1092,3 +1083,4 @@ renderMaterials();
 </script>
 </body>
 </html>
+-->
