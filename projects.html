@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gurumurthy | Projects</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Navbar -->
+        <header>
+            <nav class="navbar">
+                <a href="index.html" class="logo">
+                    <img src="assets/images/logo_inv_thin_tran.png" alt="Gurumurthy Logo">
+                </a>
+                <div class="menu-toggle" id="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+                <ul class="nav-links">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="projects.html" class="active">Projects</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section id="hero">
+                <!-- <div class="hero-label">// Selected Work</div> -->
+                <h1>My Projects</h1>
+                <p>Click any card for more details.</p>
+            </section>
+            
+            <div class="carousel-container">
+                <button class="arrow left">&#10094;</button>
+                <div class="carousel-track">
+
+                    <!-- Projects -->
+                    <div class="project-card">
+                        <img src="assets/images/SAR ADC/SAR_ADC_black.pneg" alt="LowDropout regulator">
+                        <h3>LDO</h3>
+                        <p class="project-intro">A fully custom-layout LDO in TSMC 45nm. will update soon</p>
+                        <!--
+                        <div class="project-details" style="display:none;">
+                            <h2>9-bit Differential SAR ADC</h2>
+                            <p>
+                                This project involved the full custom design, layout, and post-layout verification of a
+                                <strong>LDO in TSMC 45nm</strong> using Cadence Virtuoso.
+                                Every analog core block was hand-laid from scratch with careful attention to
+                                matching, noise isolation, and parasitic symmetry.
+                            </p>
+
+                            <div class="modal-image-container">
+                                <img src="assets/images/SAR ADC/SAR_ADC_black_annotated.pnEg" alt="SAR ADC Top-Level Layout">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+
+                            <h3 style="margin-top: 1.5rem;">Comparator &amp; CDAC Layout</h3>
+                            <p>
+                                The dynamic two-stage comparator (Van Elzakker, JSSC 2010) was laid out using a <strong>common-centroid differential pair</strong>,
+                                with dummy devices back-annotated throughout to ensure every active device sees the same
+                                local environment. Guard rings isolate the sensitive analog nodes from digital switching noise.
+                                Monte Carlo mismatch simulation in <strong>ADE XL</strong> across different process corners confirmed
+                                a mean offset of <strong>&lt;3.2 mV (FF) and &lt;1.8 mV (SS)</strong>, well within the
+                                ±0.5 LSB target.
+                            </p>
+                            <p>
+                                The binary-weighted CDAC was generated with the help of SKILL scripts (LLM-assisted) for
+                                layout efficiency, surrounded by a full dummy capacitor ring. Iterative simulation-driven
+                                refinement brought all capacitor ratios to within <strong>&lt;±0.2%</strong> of their ideal
+                                binary-weighted values, critical for achieving monotonic code transitions.
+                            </p>
+
+                            <div class="modal-image-container">
+                                <img src="assets/images/SAR ADC/comparator_black.png" alt="Comparator Layout">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+
+                            <h3 style="margin-top: 1.5rem;">Bootstrapped Sampling Switches</h3>
+                            <p>
+                                Referencing <strong>Prof. Razavi's bootstrapped switch topology</strong> (UCLA), a custom
+                                bootstrapping network was designed to hold the gate-source voltage V<sub>GS</sub> of the
+                                top-plate sampling switches nearly constant across the full input swing, achieving a
+                                V<sub>GS</sub> variation of only <strong>~25 mV</strong>. This dramatically linearizes the
+                                on-resistance R<sub>ON</sub>, with the sampling switch network alone improving
+                                <strong>SFDR from 43 dB to 59 dB</strong>.
+                            </p>
+
+                            <div class="modal-image-container">
+                                <img src="assets/images/SAR ADC/bootstrap_schematic_black.png" alt="Bootstrapped Switch Schematic">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+
+                            <h3 style="margin-top: 1.5rem;">Digital Controller &amp; Layout Methodology</h3>
+                            <p>
+                                The digital SAR controller was designed in <strong>VerilogA</strong> and taken through
+                                synthesis and place-and-route, with IO pin locations customized to minimize routing distance
+                                to the analog blocks while keeping the overall controller footprint compact.
+                                Across all layouts, odd metal layers were routed vertically and even layers horizontally,
+                                digital signal traces were physically separated from analog to suppress crosstalk,
+                                and wire lengths were matched wherever parasitic symmetry mattered, both for RC delay
+                                in digital paths and mismatch control in analog ones.
+                            </p>
+
+                            <h3 style="margin-top: 1.5rem;">Post-Layout Verification</h3>
+                            <p>
+                                After full <strong>R+C+C<sub>c</sub> parasitic extraction</strong>, the ADC was simulated
+                                in ADE L for SNDR and SFDR. With metal fillers and DCAP cells in place, the final verified
+                                performance is:
+                            </p>
+                            <ul style="margin: 0.5rem 0 1rem 1.2rem; line-height: 2;">
+                                <li><strong>SNDR:</strong> 50.5 dB</li>
+                                <li><strong>SFDR:</strong> 59.5 dB</li>
+                                <li><strong>Power:</strong> 233.3 μW</li>
+                                <li><strong>Die Area:</strong> 399.2 × 341.5 μm</li>
+                            </ul>
+                            <p>
+                                ADE L was also used to validate comparator propagation delay across corners, and
+                                ADE XL Monte Carlo runs covered both device mismatch and full PVT corner sweeps.
+                            </p>
+
+                            <div class="modal-image-container">
+                                <img src="assets/images/SAR ADC/sfdr_plot.png" alt="SNDR/SFDR Simulation Results">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+
+                            <h3 style="margin-top: 1.5rem;">Top Chip Tape-Out</h3>
+                            <p>
+                                The design was subsequently merged with five other groups' SAR ADCs into a
+                                <strong>6-ADC top-level tape-out chip</strong>. To support testability, a
+                                <strong>6-to-1 output MUX</strong> (VerilogA) was designed to select the 10-bit output
+                                from any of the six ADCs, along with a <strong>10-bit buffer array</strong> to restore
+                                signal strength along the long on-chip traces from ADC outputs to pads.
+                            </p>
+                            <p>
+                                At the top level, the pad ring was modified to give each SAR ADC its own V<sub>DD</sub>
+                                domain while sharing a common VSS, and ESD protection was added to all exposed pads.
+                                Full <strong>DRC and LVS closure</strong> was achieved on the complete top chip —
+                                including density checks, antenna rule checks, and seal ring insertion to prevent
+                                fabrication edge defects.
+                            </p>
+
+                            <div class="modal-image-container">
+                                <img src="assets/images/SAR ADC/adc_chip_black.png" alt="Top-Level Chip Layout">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+
+                            <p>
+                                For more details, check out the <a href="https://github.com/gurumurthy2001" target="_blank">GitHub repository</a>!
+                            </p>
+                        </div>  -->
+                    </div>
+
+                    <div class="project-card">
+                        <img src="assets/images/Dual Core Accelerator/dual_core_cover.pnEg" alt="Bandgap Reference">
+                        <h3>BGR</h3>
+                        <p class="project-intro">A fully custom-layout BGR in TSMC 45nm. will update soon</p>
+                        <!--
+                        <div class="project-details" style="display:none;">
+                            <h2>Dual-Core ML Accelerator</h2>
+                            <p>
+                                This project implements a <strong>dual-core hardware accelerator for scaled dot-product attention</strong> (Q×K)
+                                used in transformer-based ML models. Each core features an 8×8 2D systolic array of MAC units operating on
+                                8-bit integer vectors, synthesized in <strong>TSMC 65nm</strong> and fully place-and-routed targeting
+                                <strong>1 GHz</strong> using Synopsys Design Compiler and Cadence Innovus.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/Dual Core Accelerator/dual_core_cover.png" alt="Dual-core PnR layout">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                Beginning from a single-core RTL design, the work progressively builds toward
+                                <strong>dual-core parallelism across independent clock domains</strong>, fixed-point output normalization,
+                                hierarchical synthesis with SRAM hard blocks, and sparsity-aware optimizations — all validated through
+                                gate-level simulation with SDF back-annotation. A 4-phase req/ack asynchronous CDC bridge handles
+                                partial sum exchange between the two clock domains without synchronizing the full data bus.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/Dual Core Accelerator/dual_core_waveform.png" alt="Gate-level simulation waveform">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                Key optimizations — including pipelining the normalization critical path and hardening the async
+                                handshake — improved WNS by over <strong>6 ns</strong> while cutting total power by <strong>~50%</strong>
+                                and area by <strong>~67%</strong> versus the unoptimized baseline. Row-level sparsity was also implemented,
+                                skipping normalization for low-energy rows and reducing single-core power from 83.2 mW to 64.9 mW.
+                            </p>
+                            <p>
+                                For more details, check out the <a href="https://github.com/gurumurthy2001" target="_blank">GitHub repository</a>!
+                            </p>
+                        </div> -->
+                    </div>
+                    
+                    <div class="project-card">
+                        <img src="assets/images/KSA/KSA.pnEg" alt="op amp">
+                        <h3>OPAMP</h3>
+                        <p class="project-intro">A fully custom-layout OPAMP in TSMC 45nm. will update soon</p>
+                        <!--
+                        <div class="project-details" style="display:none;">
+                            <h2>8-bit Kogge-Stone Adder</h2>
+                            <p>
+                                This project implements a high-speed, 8-bit Kogge-Stone Adder (KSA) implemented using static CMOS logic in Cadence, 
+                                designed for minimum delay, reduced transistor count, and robust signal integrity at the transistor level.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/KSA/KSA.png" alt="Adder diagram">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                The design achieves <strong>logarithmic delay</strong> and is well-suited for
+                                large-scale arithmetic circuits where speed is critical.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/KSA/KSA_summary.png" alt="Adder summary">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                For more details, check out the <a href="https://github.com/gurumurthy2001" target="_blank">GitHub repository</a>!
+                            </p>
+                        </div> -->
+                    </div>
+                    <!--
+                    <div class="project-card">
+                        <img src="assets/images/Cosmic Whisper/cosmic_whisper.png" alt="Cosmic Whisper">
+                        <h3>Cosmic Whisper</h3>
+                        <p class="project-intro">An educational game for people interested in optics and circuits, as part of research supervised by Professor Saharnaz, UCSD.</p>
+
+                        <div class="project-details" style="display:none;">
+                            <h2>Cosmic Whisper</h2>
+                            <p>
+                                <i>Cosmic Whisper</i> is an interactive educational game developed to <strong>inspire interest in optics and electrical engineering through immersive and hands-on problem solving</strong>. 
+                                Designed under Professor Saharnaz's supervision at UC San Diego, 
+                                the game casts players as scientists trying to communicate with an alien civilization orbiting a chaotic three-star system, inspired by <em>The Three-Body Problem</em>.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/Cosmic Whisper/three_body.png" alt="Cosmic Whisper setup">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                Packaged in a durable stainless steel housing and powered by an ESP32-S3 microcontroller, 
+                                the game unfolds through a <strong>multi-stage puzzle sequence</strong> that blends real-world experiments with digital logic. 
+                                Players tackle challenges involving light transmission and absorption, spectroscopy, optical ciphers (Morse code and Vigenère), and light intensity modulation. 
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/Cosmic Whisper/setup.jpg" alt="Setup">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                For more details, check out the <a href="https://github.com/gurumurthy2001" target="_blank">GitHub repository</a>!
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="project-card">
+                        <img src="assets/images/PowerHub/MPH_3d.png" alt="Modular Power Hub 3D PCB Render">
+                        <h3>Modular Power Hub</h3>
+                        <p class="project-intro">An intelligent dual-I/O power management system with automatic source switching.</p>
+
+                        <div class="project-details" style="display:none;">
+                            <h2>Modular Power Hub</h2>
+                            <p>
+                                The Modular Power Hub is a professional-grade power management solution designed for modern electronics projects. 
+                                This intelligent system provides <strong>seamless automatic switching</strong> between USB-A and USB-C inputs while delivering clean, regulated power through multiple output rails.
+                                Built with comprehensive protection circuits, it eliminates power source uncertainty and protects valuable components from electrical faults.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/PowerHub/MPH_sch.png" alt="Modular Power Hub Schematic">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                For more details, check out the <a href="https://github.com/gurumurthy2001" target="_blank">GitHub repository</a>!
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="project-card">
+                        <img src="assets/images/Sonic Car/car_1.png" alt="SonicCar">
+                        <h3>SonicCar</h3>
+                        <p class="project-intro">A voice-commanded autonomous vehicle with LiDAR navigation and deep learning stop sign detection.</p>
+
+                        <div class="project-details" style="display:none;">
+                            <h2>SonicCar</h2>
+                            <p>
+                                As part of UCSD's <strong>ECE/MAE148 (Introduction to Autonomous Vehicles)</strong> course, our team developed <em>SonicCar</em>, 
+                                a state-of-the-art autonomous vehicle capable of responding to voice commands and navigating intelligently and safely.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/Sonic Car/car_1.png" alt="Sonic Car 1">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                SonicCar integrates speech-to-text recognition with a large language model (LLM), enabling it to <strong>interpret and execute natural language commands</strong>. 
+                                To ensure safe operation, it combines <strong>LiDAR-based obstacle detection</strong> with a camera-based stop sign recognition system trained using <strong>RoboFlow deep learning</strong>. 
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/Sonic Car/car_2.png" alt="Sonic Car 2">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                For more details, check out the <a href="https://github.com/gurumurthy2001" target="_blank">GitHub repository</a>!
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="project-card">
+                        <img src="assets/images/WearWise/WearWise.png" alt="WearWise">
+                        <h3>WearWise</h3>
+                        <p class="project-intro">WearWise, a smart IoT Wardrobe Management App.</p>
+
+                        <div class="project-details" style="display:none;">
+                            <h2>WearWise</h2>
+                            <p>
+                                <strong>WearWise</strong> (IoT Wardrobe Management App) is a secure platform that lets users monitor personal environmental sensing devices and manage their wardrobe efficiently. 
+                                Through a robust authentication system, users can <strong>register ESP32 devices, track real-time temperature and humidity data, and visualize trends</strong> on an interactive dashboard. 
+                                The app also features an <strong>AI-powered assistant</strong> that provides outfit recommendations based on weather forecasts.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/WearWise/closet.jpg" alt="WearWise closet">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                <strong>Key Functionalities:</strong><br>
+                                • <strong>Secured User Info:</strong> Passwords are hashed and user data is protected.<br>
+                                • <strong>Adding Devices via QR-Code:</strong> Quickly register sensors by scanning QR codes.<br>
+                                • <strong>Real-Time Sensor Data Display:</strong> Monitor live temperature readings with charts.<br>
+                                • <strong>Smart AI Secretary:</strong> Clothing recommendations based on wardrobe and environmental data.<br>
+                                • <strong>Two-Factor Authentication:</strong> Optional 2FA for enhanced security.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/WearWise/weather.jpg" alt="WearWise weather">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                For more details, check out the <a href="https://github.com/gurumurthy2001" target="_blank">GitHub repository</a>!
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="project-card">
+                        <img src="assets/images/Bitcoin Hashing/bitcoin_hashing.jpg" alt="Bitcoin Hashing">
+                        <h3>Bitcoin Hashing</h3>
+                        <p class="project-intro">Bitcoin hashing using SHA-256 as a cryptographic process that secures transactions on the Bitcoin network.</p>
+
+                        <div class="project-details" style="display:none;">
+                            <h2>Bitcoin Hashing</h2>
+                            <p>
+                                This project demonstrates the implementation of Bitcoin's proof-of-work mechanism by simulating the SHA-256 hashing process used in Bitcoin mining. 
+                                The design is implemented in SystemVerilog and includes <strong>various configurations (serial and parallel)</strong> to explore different hashing methods.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/Bitcoin Hashing/serial.png" alt="Serial hashing">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                This project serves as an educational tool to understand the cryptographic processes behind Bitcoin mining, 
+                                focusing on the SHA-256 algorithm's role in securing transactions and maintaining the blockchain's integrity.
+                            </p>
+                            <div class="modal-image-container">
+                                <img src="assets/images/Bitcoin Hashing/parallel.png" alt="Parallel hashing">
+                                <span class="zoom-btn">&#128269;</span>
+                            </div>
+                            <p>
+                                For more details, check out the <a href="https://github.com/gurumurthy2001" target="_blank">GitHub repository</a>!
+                            </p>
+                        </div>
+                    </div>
+                    -->
+                </div>
+                <button class="arrow right">&#10095;</button>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>© 2025 Gurumurthy &nbsp;·&nbsp; <a href="https://github.com/gurumurthy2001" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+
+    <div id="project-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <div id="lightbox">
+        <span class="close">&times;</span>
+        <img src="" alt="Zoomed image">
+    </div>
+
+    <script src="js/menu.js"></script>
+    <script src="js/projects.js"></script>
+</body>
+</html>
